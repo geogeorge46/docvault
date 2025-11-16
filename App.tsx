@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Document, DocumentVersion, Folder } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -12,6 +13,8 @@ import { PlusIcon } from './components/icons/PlusIcon';
 import { FolderPlusIcon } from './components/icons/FolderPlusIcon';
 import { useTranslation } from './hooks/useTranslation';
 import { sampleDocuments } from './sampleData';
+import { CameraIcon } from './components/icons/CameraIcon';
+import CameraModal from './components/CameraModal';
 
 // --- Crypto Utilities ---
 const textEncoder = new TextEncoder();
@@ -170,6 +173,7 @@ const App: React.FC = () => {
     const [isUploadModalOpen, setUploadModalOpen] = useState(false);
     const [isDetailModalOpen, setDetailModalOpen] = useState(false);
     const [isCreateFolderModalOpen, setCreateFolderModalOpen] = useState(false);
+    const [isCameraModalOpen, setCameraModalOpen] = useState(false);
     const [documentToUpdateId, setDocumentToUpdateId] = useState<string | null>(null);
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -361,6 +365,13 @@ const App: React.FC = () => {
                     <FolderPlusIcon className="w-7 h-7" />
                 </button>
                 <button
+                    onClick={() => setCameraModalOpen(true)}
+                    className="bg-teal-600 hover:bg-teal-700 text-white rounded-full p-3 shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-teal-500 focus:ring-opacity-50"
+                    aria-label={t('aria.scanDocument')}
+                >
+                    <CameraIcon className="w-7 h-7" />
+                </button>
+                <button
                     onClick={handleOpenUploadModalForNew}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full p-4 shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
                     aria-label={t('aria.addNewDocument')}
@@ -376,6 +387,16 @@ const App: React.FC = () => {
                     onAddDocument={handleAddDocument}
                     onAddVersion={handleAddVersion}
                     documentToUpdate={documents.find(d => d.id === documentToUpdateId) || null}
+                    folders={folders}
+                    currentFolderId={currentFolderId}
+                />
+            )}
+
+            {isCameraModalOpen && (
+                <CameraModal
+                    isOpen={isCameraModalOpen}
+                    onClose={() => setCameraModalOpen(false)}
+                    onAddDocument={handleAddDocument}
                     folders={folders}
                     currentFolderId={currentFolderId}
                 />

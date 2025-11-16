@@ -89,6 +89,21 @@
     "setupButton": "വോൾട്ട് ഉണ്ടാക്കുക",
     "error": "തെറ്റായ പാസ്‌വേഡ്. വീണ്ടും ശ്രമിക്കുക."
   },
+  "cameraModal": {
+    "title": "പ്രമാണം സ്കാൻ ചെയ്യുക",
+    "capture": "ചിത്രമെടുക്കുക",
+    "capturePage": "പേജ് പിടിച്ചെടുക്കുക",
+    "retake": "വീണ്ടും എടുക്കുക",
+    "save": "സംരക്ഷിക്കുക ({{count}} പേജ്)",
+    "save_plural": "സംരക്ഷിക്കുക ({{count}} പേജുകൾ)",
+    "saveAsPdf": "PDF ആയി സംരക്ഷിക്കുക",
+    "errorNoCamera": "ക്യാമറ ആക്‌സസ് ചെയ്യാൻ കഴിഞ്ഞില്ല. ദയവായി അനുമതികൾ പരിശോധിക്കുക.",
+    "errorNoCapture": "ദയവായി കുറഞ്ഞത് ഒരു പേജെങ്കിലും പകർത്തുക.",
+    "errorNoName": "പ്രമാണത്തിന് ഒരു പേര് നൽകുക.",
+    "docNameLabel": "പ്രമാണത്തിന്റെ പേര്",
+    "docNamePlaceholder": "ഉദാ: സ്കാൻ ചെയ്ത രസീത്",
+    "pages": "പേജുകൾ"
+  },
   "aria": {
     "addNewDocument": "പുതിയ പ്രമാണം ചേർക്കുക",
     "createNewFolder": "പുതിയ ഫോൾഡർ ഉണ്ടാക്കുക",
@@ -96,6 +111,7 @@
     "shareDocument": "{{docName}} പങ്കിടുക",
     "deleteFolder": "{{folderName}} എന്ന ഫോൾഡർ മായ്ക്കുക",
     "viewDocument": "{{docName}} കാണുക",
-    "downloadDocument": "{{docName}} ഡൗൺലോഡ് ചെയ്യുക"
+    "downloadDocument": "{{docName}} ഡൗൺലോഡ് ചെയ്യുക",
+    "scanDocument": "ക്യാമറ ഉപയോഗിച്ച് ഒരു പ്രമാണം സ്കാൻ ചെയ്യുക"
   }
 }

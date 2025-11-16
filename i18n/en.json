@@ -89,6 +89,21 @@
     "setupButton": "Create Vault",
     "error": "Incorrect password. Please try again."
   },
+  "cameraModal": {
+    "title": "Scan Document",
+    "capture": "Capture",
+    "capturePage": "Capture Page",
+    "retake": "Retake",
+    "save": "Save ({{count}} page)",
+    "save_plural": "Save ({{count}} pages)",
+    "saveAsPdf": "Save as PDF",
+    "errorNoCamera": "Could not access the camera. Please check permissions.",
+    "errorNoCapture": "Please capture at least one page.",
+    "errorNoName": "Please enter a name for the document.",
+    "docNameLabel": "Document Name",
+    "docNamePlaceholder": "e.g., Scanned Receipt",
+    "pages": "Pages"
+  },
   "aria": {
     "addNewDocument": "Add new document",
     "createNewFolder": "Create new folder",
@@ -96,6 +111,7 @@
     "shareDocument": "Share {{docName}}",
     "deleteFolder": "Delete folder {{folderName}}",
     "viewDocument": "View {{docName}}",
-    "downloadDocument": "Download {{docName}}"
+    "downloadDocument": "Download {{docName}}",
+    "scanDocument": "Scan a document with camera"
   }
 }
