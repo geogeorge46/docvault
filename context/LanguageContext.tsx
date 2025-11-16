@@ -18,7 +18,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
   const [translations, setTranslations] = useState({});
 
   useEffect(() => {
-    fetch(`/i18n/${language}.json`)
+    fetch(`./i18n/${language}.json`)
       .then(response => {
           if (!response.ok) {
               throw new Error(`Could not load ${language}.json`);
@@ -29,7 +29,7 @@ export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) 
       .catch(error => {
         console.error('Failed to load translations:', error);
         if (language !== 'en') {
-            fetch(`/i18n/en.json`)
+            fetch(`./i18n/en.json`)
                 .then(res => res.json())
                 .then(data => setTranslations(data))
                 .catch(err => console.error('Failed to load fallback English translations:', err));
