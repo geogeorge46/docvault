@@ -95,6 +95,7 @@
     "deleteDocument": "Delete {{docName}}",
     "shareDocument": "Share {{docName}}",
     "deleteFolder": "Delete folder {{folderName}}",
-    "viewDocument": "View {{docName}}"
+    "viewDocument": "View {{docName}}",
+    "downloadDocument": "Download {{docName}}"
   }
 }

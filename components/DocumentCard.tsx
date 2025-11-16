@@ -8,6 +8,7 @@ import { useTranslation } from '../hooks/useTranslation';
 import { DatabaseIcon } from './icons/DatabaseIcon';
 import { EyeIcon } from './icons/EyeIcon';
 import { ShareIcon } from './icons/ShareIcon';
+import { DownloadIcon } from './icons/DownloadIcon';
 
 interface DocumentCardProps {
   document: Document;
@@ -153,6 +154,14 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
                     <button onClick={() => onAddVersion(document.id)} className="text-indigo-600 hover:underline">{t('documentCard.addNewVersion')}</button>
                 </div>
                 <div className="flex items-center space-x-2">
+                    <a
+                        href={latestVersion.fileDataUrl}
+                        download={latestVersion.fileName}
+                        aria-label={t('aria.downloadDocument', { docName: document.name })}
+                        className="p-1.5 rounded-full text-slate-500 hover:bg-slate-200 transition-colors"
+                    >
+                        <DownloadIcon className="w-5 h-5" />
+                    </a>
                     <button onClick={handleShare} aria-label={t('aria.shareDocument', { docName: document.name })} className="p-1.5 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
                         <ShareIcon className="w-5 h-5" />
                     </button>

@@ -95,6 +95,7 @@
     "deleteDocument": "{{docName}} മായ്ക്കുക",
     "shareDocument": "{{docName}} പങ്കിടുക",
     "deleteFolder": "{{folderName}} എന്ന ഫോൾഡർ മായ്ക്കുക",
-    "viewDocument": "{{docName}} കാണുക"
+    "viewDocument": "{{docName}} കാണുക",
+    "downloadDocument": "{{docName}} ഡൗൺലോഡ് ചെയ്യുക"
   }
 }
