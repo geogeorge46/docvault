@@ -4,12 +4,11 @@ import { useTranslation } from '../hooks/useTranslation';
 import { XIcon } from './icons/XIcon';
 import { TrashIcon } from './icons/TrashIcon';
 
-// Add JSZip and ImageCapture to the window interface
+// Add JSZip to the window interface
 declare global {
     interface Window {
         jspdf: any;
         JSZip: any;
-        ImageCapture: any;
     }
 }
 
@@ -29,79 +28,21 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     const { t } = useTranslation();
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageCaptureRef = useRef<any>(null);
+    const streamRef = useRef<MediaStream | null>(null);
 
-    const [stream, setStream] = useState<MediaStream | null>(null);
     const [capturedImages, setCapturedImages] = useState<string[]>([]);
     const [view, setView] = useState<'capture' | 'form'>('capture');
     
     const [docName, setDocName] = useState('');
-    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
+    const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [processingState, setProcessingState] = useState<ProcessingState>('idle');
     const [cameraStatus, setCameraStatus] = useState<CameraStatus>('initializing');
     const [shutterEffect, setShutterEffect] = useState(false);
 
-
-    const cleanup = useCallback(() => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
-        }
-        imageCaptureRef.current = null;
-    }, [stream]);
-
+    // Effect to reset state when modal opens
     useEffect(() => {
-        const videoElement = videoRef.current;
-    
         if (isOpen) {
-            setCameraStatus('initializing');
-    
-            const startStream = async () => {
-                try {
-                    // Removed specific width/height to maximize compatibility and prevent timeouts on some devices.
-                    const mediaStream = await navigator.mediaDevices.getUserMedia({
-                        video: { 
-                            facingMode: 'environment'
-                        }
-                    });
-                    setStream(mediaStream);
-    
-                    if (videoElement) {
-                        videoElement.srcObject = mediaStream;
-                        // onloadeddata fires when the first frame is available, which is faster than oncanplay.
-                        videoElement.onloadeddata = () => {
-                            videoElement.play().catch(err => {
-                                console.error("Video play failed:", err);
-                                setError("Could not play video stream.");
-                                setCameraStatus('error');
-                            });
-    
-                            if (typeof window.ImageCapture !== 'undefined') {
-                                try {
-                                    const track = mediaStream.getVideoTracks()[0];
-                                    if(track) {
-                                        imageCaptureRef.current = new window.ImageCapture(track);
-                                    }
-                                } catch (e) {
-                                    console.error("ImageCapture initialization failed: ", e);
-                                    imageCaptureRef.current = null;
-                                }
-                            } else {
-                                imageCaptureRef.current = null;
-                            }
-                            setCameraStatus('ready');
-                        };
-                    }
-                } catch (err: any) {
-                    console.error(`Camera access failed with ${err.name}:`, err);
-                    setError(t('cameraModal.errorNoCamera'));
-                    setCameraStatus('error');
-                }
-            };
-            startStream();
-        } else {
-            cleanup();
             setCapturedImages([]);
             setView('capture');
             setDocName('');
@@ -111,55 +52,104 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             setSelectedFolderId(currentFolderId);
             setCameraStatus('initializing');
         }
-    
-        return () => {
-            if (videoElement) {
-                videoElement.onloadeddata = null;
+    }, [isOpen, currentFolderId]);
+
+    // Effect for camera setup and cleanup
+    useEffect(() => {
+        if (!isOpen) {
+            return;
+        }
+
+        const videoElement = videoRef.current;
+        let isCancelled = false;
+
+        const cleanupStream = () => {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+                streamRef.current = null;
             }
-            if (isOpen) {
-                cleanup();
+            if (videoElement && videoElement.srcObject) {
+                videoElement.srcObject = null;
             }
         };
-    }, [isOpen, t, cleanup, currentFolderId]);
 
-    const handleCapture = useCallback(async () => {
-        if (cameraStatus !== 'ready' || !stream?.active) return;
-    
-        setShutterEffect(true);
-        setTimeout(() => setShutterEffect(false), 100);
-    
-        try {
-            let imageDataUrl: string;
-    
-            if (imageCaptureRef.current) {
-                const blob = await imageCaptureRef.current.takePhoto();
-                imageDataUrl = await new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(blob);
+        const startCamera = async () => {
+            cleanupStream(); // Clean up any previous stream
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
                 });
-            } else {
-                const video = videoRef.current;
-                const canvas = canvasRef.current;
-                if (!video || !canvas) throw new Error("Video or canvas ref not available.");
-                
-                // Use a stricter check: HAVE_FUTURE_DATA (3) means we have the current frame and the next one.
-                if (video.readyState < 3 || video.videoWidth === 0) {
-                    throw new Error("Video stream is not ready for capture.");
+
+                if (isCancelled) {
+                    stream.getTracks().forEach(track => track.stop());
+                    return;
                 }
 
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const context = canvas.getContext('2d');
-                if (!context) throw new Error("Could not get canvas context.");
-                
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                streamRef.current = stream;
+                if (videoElement) {
+                    videoElement.srcObject = stream;
+                    videoElement.onloadeddata = () => {
+                        if (isCancelled) return;
+                        videoElement.play().catch(err => {
+                            console.error("Video play failed:", err);
+                            if (!isCancelled) {
+                                setError(t('cameraModal.errorNoCamera'));
+                                setCameraStatus('error');
+                            }
+                        });
+                        setCameraStatus('ready');
+                    };
+                    videoElement.onerror = () => {
+                        if (!isCancelled) {
+                            setError(t('cameraModal.errorNoCamera'));
+                            setCameraStatus('error');
+                        }
+                    }
+                }
+            } catch (err: any) {
+                console.error("Camera access denied:", err);
+                if (!isCancelled) {
+                    setError(t('cameraModal.errorNoCamera'));
+                    setCameraStatus('error');
+                }
             }
+        };
+
+        startCamera();
+
+        return () => {
+            isCancelled = true;
+            cleanupStream();
+        };
+    }, [isOpen, t]);
+
+    const handleCapture = useCallback(() => {
+        if (cameraStatus !== 'ready' || !videoRef.current || !canvasRef.current) return;
     
-            if (imageDataUrl && imageDataUrl !== 'data:,') {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+
+        // HAVE_CURRENT_DATA = 2. Check if we have at least the current frame.
+        if (video.readyState < 2 || video.videoWidth === 0) {
+            setError("Camera feed is not ready. Please wait a moment.");
+            return;
+        }
+
+        setShutterEffect(true);
+        setTimeout(() => setShutterEffect(false), 150);
+    
+        try {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error("Could not get canvas context.");
+            
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    
+            if (imageDataUrl && imageDataUrl.length > 100) { // Simple check for non-empty data
                 setCapturedImages(prev => [...prev, imageDataUrl]);
+                setError(null); // Clear previous errors on successful capture
             } else {
                 throw new Error("Image capture resulted in empty data.");
             }
@@ -168,7 +158,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             console.error("Capture failed:", e);
             setError("Failed to capture image. Please try again.");
         }
-    }, [stream, cameraStatus]);
+    }, [cameraStatus]);
     
     const handleDeleteImage = (index: number) => {
         setCapturedImages(prev => prev.filter((_, i) => i !== index));
@@ -228,6 +218,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             } catch (e) {
                 console.error("Failed to generate PDF", e);
                 setError("Failed to generate PDF. Please try again.");
+            } finally {
                 setProcessingState('idle');
             }
         }, 100);
@@ -242,7 +233,6 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             try {
                 const zip = new window.JSZip();
                 capturedImages.forEach((imgDataUrl, index) => {
-                    // Strip the data URL prefix to get pure base64
                     const base64Data = imgDataUrl.split(',')[1];
                     zip.file(`page_${index + 1}.jpg`, base64Data, { base64: true });
                 });
@@ -261,6 +251,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             } catch (e) {
                 console.error("Failed to generate ZIP", e);
                 setError("Failed to generate ZIP. Please try again.");
+            } finally {
                 setProcessingState('idle');
             }
         }, 100);
@@ -290,10 +281,9 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className={`absolute top-0 left-0 w-full h-full object-cover transform-gpu transition-opacity duration-300 ${view === 'form' || cameraStatus !== 'ready' ? 'opacity-0' : 'opacity-100'}`}
+                    className={`absolute top-0 left-0 w-full h-full object-cover transform-gpu transition-opacity duration-300 ${view === 'form' || cameraStatus !== 'ready' ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                 />
 
-                {/* Shutter Effect Overlay */}
                 <div className={`absolute inset-0 bg-white/80 transition-opacity duration-100 z-10 ${shutterEffect ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
                 
                 {view === 'form' && (
