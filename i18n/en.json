@@ -1,0 +1,68 @@
+{
+  "header": {
+    "title": "DocuVault",
+    "subtitle": "Your Secure Document Safe"
+  },
+  "language": {
+    "toggle": "മലയാളം"
+  },
+  "documentList": {
+    "searchPlaceholder": "Search by name, filename, or notes...",
+    "sortByLabel": "Sort by:",
+    "sortByRelevance": "Sorting by relevance.",
+    "sortOptions": {
+      "lastUpdated": "Last Updated",
+      "name": "Name (A-Z)",
+      "createdAt": "Date Created"
+    },
+    "noDocumentsTitle": "No documents yet",
+    "noDocumentsDescription": "Click the '+' button to add your first document.",
+    "noDocumentsFoundTitle": "No documents found",
+    "noDocumentsFoundDescription": "Try adjusting your search term."
+  },
+  "documentCard": {
+    "delete": "DELETE",
+    "deleteConfirmation": "Are you sure you want to delete this document and all its versions? This action cannot be undone.",
+    "versions": "{{count}} version",
+    "versions_plural": "{{count}} versions",
+    "fileSize": "Size: {{size}}",
+    "lastUpdated": "Last updated: {{date}}",
+    "viewDetails": "Details",
+    "view": "View",
+    "addNewVersion": "Add Version",
+    "share": "Share",
+    "shareError": "Your browser does not support sharing files directly."
+  },
+  "uploadModal": {
+    "titleNew": "Add New Document",
+    "titleUpdate": "Add version to \"{{docName}}\"",
+    "docNameLabel": "Document Name",
+    "docNamePlaceholder": "e.g., Car Insurance",
+    "uploadFileLabel": "Upload File",
+    "changeFile": "Change file",
+    "uploadFile": "Upload a file",
+    "dragAndDrop": "or drag and drop",
+    "fileTypes": "PDF, JPG, PNG, etc.",
+    "versionNotesLabel": "Version Notes (Optional)",
+    "versionNotesPlaceholder": "e.g., Policy for 2024-2025",
+    "errorNoFile": "Please select a file to upload.",
+    "errorNoName": "Please enter a name for the document.",
+    "errorReadFile": "Could not read the file.",
+    "errorReadingFile": "Error reading file.",
+    "cancel": "Cancel",
+    "save": "Save Document"
+  },
+  "documentDetailModal": {
+    "title": "Version History",
+    "version": "Version {{versionNumber}}",
+    "latest": "Latest",
+    "uploadedOn": "Uploaded on: {{date}}",
+    "download": "Download",
+    "close": "Close"
+  },
+  "aria": {
+    "addNewDocument": "Add new document",
+    "deleteDocument": "Delete {{docName}}",
+    "shareDocument": "Share {{docName}}"
+  }
+}
