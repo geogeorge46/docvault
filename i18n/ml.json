@@ -1,3 +1,4 @@
+
 {
   "header": {
     "title": "ഡോക്യൂവോൾട്ട്",
@@ -5,6 +6,22 @@
   },
   "language": {
     "toggle": "English"
+  },
+  "breadcrumb": {
+    "home": "ഹോം"
+  },
+  "folders": {
+    "title": "ഫോൾഡറുകൾ",
+    "assignTo": "ഫോൾഡറിലേക്ക് ചേർക്കുക",
+    "none": "ഒന്നുമില്ല (വർഗ്ഗീകരിക്കാത്തത്)",
+    "createTitle": "പുതിയ ഫോൾഡർ ഉണ്ടാക്കുക",
+    "folderNameLabel": "ഫോൾഡറിന്റെ പേര്",
+    "folderNamePlaceholder": "ഉദാ: സർട്ടിഫിക്കറ്റുകൾ",
+    "createButton": "ഫോൾഡർ ഉണ്ടാക്കുക",
+    "errorNoName": "ഫോൾഡറിന് ഒരു പേര് നൽകുക."
+  },
+  "documents": {
+    "uncategorizedTitle": "വർഗ്ഗീകരിക്കാത്ത പ്രമാണങ്ങൾ"
   },
   "documentList": {
     "searchPlaceholder": "പേര്, ഫയലിന്റെ പേര്, അല്ലെങ്കിൽ കുറിപ്പുകൾ ഉപയോഗിച്ച് തിരയുക...",
@@ -16,7 +33,7 @@
       "createdAt": "ഉണ്ടാക്കിയ തീയതി"
     },
     "noDocumentsTitle": "ഇതുവരെ പ്രമാണങ്ങളൊന്നുമില്ല",
-    "noDocumentsDescription": "നിങ്ങളുടെ ആദ്യ പ്രമാണം ചേർക്കാൻ '+' ബട്ടണിൽ ക്ലിക്കുചെയ്യുക.",
+    "noDocumentsDescription": "നിങ്ങളുടെ ആദ്യ പ്രമാണമോ ഫോൾഡറോ ചേർക്കാൻ '+' ബട്ടണിൽ ക്ലിക്കുചെയ്യുക.",
     "noDocumentsFoundTitle": "പ്രമാണങ്ങളൊന്നും കണ്ടെത്തിയില്ല",
     "noDocumentsFoundDescription": "നിങ്ങളുടെ തിരയൽ പദം ക്രമീകരിക്കാൻ ശ്രമിക്കുക."
   },
@@ -62,6 +79,7 @@
   },
   "aria": {
     "addNewDocument": "പുതിയ പ്രമാണം ചേർക്കുക",
+    "createNewFolder": "പുതിയ ഫോൾഡർ ഉണ്ടാക്കുക",
     "deleteDocument": "{{docName}} മായ്ക്കുക",
     "shareDocument": "{{docName}} പങ്കിടുക"
   }

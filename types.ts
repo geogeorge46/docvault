@@ -13,4 +13,11 @@ export interface Document {
   name: string;
   createdAt: string; // ISO string date
   versions: DocumentVersion[];
+  folderId?: string | null;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  createdAt: string; // ISO string date
 }

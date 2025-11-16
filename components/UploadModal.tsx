@@ -1,5 +1,6 @@
-import React, { useState, useCallback, ChangeEvent } from 'react';
-import { Document, DocumentVersion } from '../types';
+
+import React, { useState, useCallback, ChangeEvent, useEffect } from 'react';
+import { Document, DocumentVersion, Folder } from '../types';
 import { XIcon } from './icons/XIcon';
 import { FileIcon } from './icons/FileIcon';
 import { useTranslation } from '../hooks/useTranslation';
@@ -7,18 +8,31 @@ import { useTranslation } from '../hooks/useTranslation';
 interface UploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddDocument: (name: string, version: Omit<DocumentVersion, 'versionId' | 'uploadedAt'>) => void;
+  onAddDocument: (name: string, folderId: string | null, version: Omit<DocumentVersion, 'versionId' | 'uploadedAt'>) => void;
   onAddVersion: (docId: string, version: Omit<DocumentVersion, 'versionId' | 'uploadedAt'>) => void;
   documentToUpdate: Document | null;
+  folders: Folder[];
+  currentFolderId: string | null;
 }
 
-const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddDocument, onAddVersion, documentToUpdate }) => {
-  const [docName, setDocName] = useState(documentToUpdate?.name || '');
+const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddDocument, onAddVersion, documentToUpdate, folders, currentFolderId }) => {
+  const [docName, setDocName] = useState('');
   const [versionNotes, setVersionNotes] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const { t } = useTranslation();
+
+  useEffect(() => {
+    if (isOpen) {
+        setDocName(documentToUpdate?.name || '');
+        setVersionNotes('');
+        setFile(null);
+        setError(null);
+        setSelectedFolderId(currentFolderId);
+    }
+  }, [isOpen, documentToUpdate, currentFolderId]);
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -82,7 +96,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddDocumen
       if (documentToUpdate) {
         onAddVersion(documentToUpdate.id, newVersionData);
       } else {
-        onAddDocument(docName.trim(), newVersionData);
+        onAddDocument(docName.trim(), selectedFolderId, newVersionData);
       }
       onClose();
     };
@@ -90,7 +104,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddDocumen
         setError(t('uploadModal.errorReadingFile'));
     };
     reader.readAsDataURL(file);
-  }, [file, docName, versionNotes, documentToUpdate, onAddDocument, onAddVersion, onClose, t]);
+  }, [file, docName, versionNotes, documentToUpdate, onAddDocument, onAddVersion, onClose, t, selectedFolderId]);
   
   if (!isOpen) return null;
   
@@ -107,17 +121,33 @@ const UploadModal: React.FC<UploadModalProps> = ({ isOpen, onClose, onAddDocumen
         </div>
         <div className="p-6 space-y-4">
           {!documentToUpdate && (
-            <div>
-              <label htmlFor="docName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('uploadModal.docNameLabel')}</label>
-              <input 
-                id="docName" 
-                type="text" 
-                value={docName} 
-                onChange={e => setDocName(e.target.value)} 
-                className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder={t('uploadModal.docNamePlaceholder')}
-              />
-            </div>
+            <>
+              <div>
+                <label htmlFor="docName" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('uploadModal.docNameLabel')}</label>
+                <input 
+                  id="docName" 
+                  type="text" 
+                  value={docName} 
+                  onChange={e => setDocName(e.target.value)} 
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder={t('uploadModal.docNamePlaceholder')}
+                />
+              </div>
+              <div>
+                <label htmlFor="folderSelect" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('folders.assignTo')}</label>
+                <select
+                    id="folderSelect"
+                    value={selectedFolderId || ''}
+                    onChange={e => setSelectedFolderId(e.target.value || null)}
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                    <option value="">{t('folders.none')}</option>
+                    {folders.map(folder => (
+                        <option key={folder.id} value={folder.id}>{folder.name}</option>
+                    ))}
+                </select>
+              </div>
+            </>
           )}
           <div>
             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('uploadModal.uploadFileLabel')}</label>

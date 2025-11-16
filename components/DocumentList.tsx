@@ -1,12 +1,19 @@
+
 import React, { useState, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { Document } from '../types';
+import { Document, Folder } from '../types';
 import DocumentCard from './DocumentCard';
+import FolderCard from './FolderCard';
 import { SearchIcon } from './icons/SearchIcon';
+import { ArrowLeftIcon } from './icons/ArrowLeftIcon';
 import { useTranslation } from '../hooks/useTranslation';
 
 interface DocumentListProps {
-  documents: Document[];
+  documents: Document[]; // All documents, for counting
+  documentsInView: Document[]; // Documents to display/search
+  folders: Folder[];
+  currentFolder: Folder | undefined;
+  onSelectFolder: (folderId: string | null) => void;
   onAddVersion: (docId: string) => void;
   onViewDetails: (doc: Document) => void;
   onDelete: (docId: string) => void;
@@ -14,7 +21,16 @@ interface DocumentListProps {
 
 type SortOption = 'lastUpdated' | 'name' | 'createdAt';
 
-const DocumentList: React.FC<DocumentListProps> = ({ documents, onAddVersion, onViewDetails, onDelete }) => {
+const DocumentList: React.FC<DocumentListProps> = ({ 
+  documents,
+  documentsInView, 
+  folders, 
+  currentFolder,
+  onSelectFolder,
+  onAddVersion, 
+  onViewDetails, 
+  onDelete 
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('lastUpdated');
   const { t } = useTranslation();
@@ -27,20 +43,18 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onAddVersion, on
         'versions.versionNotes',
       ],
       includeScore: true,
-      threshold: 0.4, // A good balance for fuzzy matching
+      threshold: 0.4,
     };
-    return new Fuse(documents, options);
-  }, [documents]);
+    return new Fuse(documentsInView, options);
+  }, [documentsInView]);
 
   const filteredAndSortedDocuments = useMemo(() => {
     const trimmedSearch = searchTerm.trim();
     if (trimmedSearch) {
-      // Use Fuse.js for fuzzy search, results are sorted by relevance
       return fuse.search(trimmedSearch).map(result => result.item);
     }
     
-    // Default sorting when not searching
-    const sortedDocs = [...documents];
+    const sortedDocs = [...documentsInView];
     sortedDocs.sort((a, b) => {
         switch (sortBy) {
             case 'name':
@@ -56,7 +70,7 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onAddVersion, on
     });
 
     return sortedDocs;
-  }, [documents, searchTerm, sortBy, fuse]);
+  }, [documentsInView, searchTerm, sortBy, fuse]);
   
   const isSearching = searchTerm.trim().length > 0;
 
@@ -98,7 +112,37 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onAddVersion, on
         </p>
       )}
 
-      {documents.length === 0 ? (
+      {currentFolder ? (
+        <div className="flex items-center">
+            <button onClick={() => onSelectFolder(null)} className="flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
+                <ArrowLeftIcon className="w-4 h-4 mr-1" />
+                {t('breadcrumb.home')}
+            </button>
+            <span className="mx-2 text-sm text-slate-400">/</span>
+            <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{currentFolder.name}</span>
+        </div>
+      ) : (
+        <>
+            {folders.length > 0 && (
+                <div>
+                    <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-3">{t('folders.title')}</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {folders.map(folder => (
+                            <FolderCard
+                                key={folder.id}
+                                folder={folder}
+                                documentCount={documents.filter(d => d.folderId === folder.id).length}
+                                onClick={() => onSelectFolder(folder.id)}
+                            />
+                        ))}
+                    </div>
+                    <hr className="my-8 border-slate-200 dark:border-slate-700" />
+                </div>
+            )}
+        </>
+      )}
+
+      {documents.length === 0 && folders.length === 0 ? (
         <div className="text-center py-16 px-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
             <h3 className="text-xl font-semibold text-slate-700 dark:text-slate-300">{t('documentList.noDocumentsTitle')}</h3>
             <p className="mt-2 text-slate-500 dark:text-slate-400">{t('documentList.noDocumentsDescription')}</p>
@@ -109,16 +153,19 @@ const DocumentList: React.FC<DocumentListProps> = ({ documents, onAddVersion, on
             <p className="mt-2 text-slate-500 dark:text-slate-400">{t('documentList.noDocumentsFoundDescription')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAndSortedDocuments.map(doc => (
-            <DocumentCard 
-              key={doc.id} 
-              document={doc}
-              onAddVersion={onAddVersion}
-              onViewDetails={onViewDetails}
-              onDelete={onDelete}
-            />
-          ))}
+        <div>
+          {!currentFolder && documentsInView.length > 0 && folders.length > 0 && <h2 className="text-lg font-semibold text-slate-700 dark:text-slate-300 mb-3">{t('documents.uncategorizedTitle')}</h2>}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAndSortedDocuments.map(doc => (
+              <DocumentCard 
+                key={doc.id} 
+                document={doc}
+                onAddVersion={onAddVersion}
+                onViewDetails={onViewDetails}
+                onDelete={onDelete}
+              />
+            ))}
+          </div>
         </div>
       )}
     </div>

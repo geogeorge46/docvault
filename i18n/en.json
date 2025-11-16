@@ -1,3 +1,4 @@
+
 {
   "header": {
     "title": "DocuVault",
@@ -5,6 +6,22 @@
   },
   "language": {
     "toggle": "മലയാളം"
+  },
+  "breadcrumb": {
+    "home": "Home"
+  },
+  "folders": {
+    "title": "Folders",
+    "assignTo": "Assign to Folder",
+    "none": "None (Uncategorized)",
+    "createTitle": "Create New Folder",
+    "folderNameLabel": "Folder Name",
+    "folderNamePlaceholder": "e.g., Certificates",
+    "createButton": "Create Folder",
+    "errorNoName": "Please enter a name for the folder."
+  },
+  "documents": {
+    "uncategorizedTitle": "Uncategorized Documents"
   },
   "documentList": {
     "searchPlaceholder": "Search by name, filename, or notes...",
@@ -16,7 +33,7 @@
       "createdAt": "Date Created"
     },
     "noDocumentsTitle": "No documents yet",
-    "noDocumentsDescription": "Click the '+' button to add your first document.",
+    "noDocumentsDescription": "Click the '+' button to add your first document or folder.",
     "noDocumentsFoundTitle": "No documents found",
     "noDocumentsFoundDescription": "Try adjusting your search term."
   },
@@ -62,6 +79,7 @@
   },
   "aria": {
     "addNewDocument": "Add new document",
+    "createNewFolder": "Create new folder",
     "deleteDocument": "Delete {{docName}}",
     "shareDocument": "Share {{docName}}"
   }
