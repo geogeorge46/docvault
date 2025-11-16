@@ -1,5 +1,5 @@
 {
-  "name": "Copy of DocuVault",
+  "name": "DocuVault",
   "description": "A secure and user-friendly application to store and manage versioned documents like PDFs and images. All data is stored locally in your browser, ensuring privacy.",
   "requestFramePermissions": []
 }
