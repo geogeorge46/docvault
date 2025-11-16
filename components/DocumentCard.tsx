@@ -95,38 +95,52 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
   const isImage = latestVersion && latestVersion.fileType.startsWith('image/');
   const isPdf = latestVersion && latestVersion.fileType === 'application/pdf';
 
+  const PreviewContent = (
+    <>
+      {isImage ? (
+        <img 
+          src={latestVersion.fileDataUrl} 
+          alt={`Preview of ${document.name}`}
+          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+        />
+      ) : isPdf ? (
+          <div className="flex flex-col items-center justify-center text-red-500">
+              <PdfIcon className="w-16 h-16" />
+              <span className="mt-2 text-xs font-bold uppercase tracking-wider">PDF</span>
+          </div>
+      ) : (
+        <FileIcon className="w-16 h-16 text-slate-300" />
+      )}
+      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center p-4 pointer-events-none">
+        {isPdf && (
+          <div
+            className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 bg-white/90 text-slate-800 font-bold py-2 px-4 rounded-full inline-flex items-center shadow-lg"
+          >
+            <EyeIcon className="w-5 h-5 mr-2" />
+            <span>{t('documentCard.view')}</span>
+          </div>
+        )}
+      </div>
+    </>
+  );
+
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden transform hover:-translate-y-1">
-      <div className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group">
-        {isImage ? (
-          <img 
-            src={latestVersion.fileDataUrl} 
-            alt={`Preview of ${document.name}`}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-          />
-        ) : isPdf ? (
-            <div className="flex flex-col items-center justify-center text-red-500">
-                <PdfIcon className="w-16 h-16" />
-                <span className="mt-2 text-xs font-bold uppercase tracking-wider">PDF</span>
-            </div>
-        ) : (
-          <FileIcon className="w-16 h-16 text-slate-300" />
-        )}
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center p-4">
-          {isPdf && (
-            <a
-              href={latestVersion.fileDataUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 bg-white/90 text-slate-800 font-bold py-2 px-4 rounded-full inline-flex items-center shadow-lg"
-              onClick={(e) => e.stopPropagation()} // Prevent card click-through
-            >
-              <EyeIcon className="w-5 h-5 mr-2" />
-              <span>{t('documentCard.view')}</span>
-            </a>
-          )}
+      {isPdf ? (
+        <a
+          href={latestVersion.fileDataUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group"
+          aria-label={t('aria.viewDocument', { docName: document.name })}
+        >
+          {PreviewContent}
+        </a>
+      ) : (
+        <div className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group">
+          {PreviewContent}
         </div>
-      </div>
+      )}
 
       <div className="p-4 flex-grow">
         <div className="flex items-start justify-between">

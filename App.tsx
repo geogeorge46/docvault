@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Document, DocumentVersion, Folder } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -303,6 +304,25 @@ const App: React.FC = () => {
         setCreateFolderModalOpen(false);
     }, []);
 
+    const handleDeleteFolder = useCallback((folderId: string) => {
+        const folderToDelete = folders.find(f => f.id === folderId);
+        if (!folderToDelete) return;
+
+        if (window.confirm(t('folders.deleteConfirmation', { folderName: folderToDelete.name }))) {
+            // Uncategorize all documents within the folder
+            setDocuments(prevDocs =>
+                prevDocs.map(doc => {
+                    if (doc.folderId === folderId) {
+                        return { ...doc, folderId: null };
+                    }
+                    return doc;
+                })
+            );
+            // Delete the folder itself
+            setFolders(prevFolders => prevFolders.filter(folder => folder.id !== folderId));
+        }
+    }, [folders, t]);
+
     const currentFolder = useMemo(() => folders.find(f => f.id === currentFolderId), [folders, currentFolderId]);
     const documentsInView = useMemo(() => {
         if (currentFolderId) {
@@ -328,6 +348,7 @@ const App: React.FC = () => {
                     onAddVersion={handleOpenUploadModalForVersion}
                     onViewDetails={handleOpenDetailModal}
                     onDelete={handleDeleteDocument}
+                    onDeleteFolder={handleDeleteFolder}
                 />
             </main>
 

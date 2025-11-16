@@ -18,7 +18,8 @@
     "folderNameLabel": "ഫോൾഡറിന്റെ പേര്",
     "folderNamePlaceholder": "ഉദാ: സർട്ടിഫിക്കറ്റുകൾ",
     "createButton": "ഫോൾഡർ ഉണ്ടാക്കുക",
-    "errorNoName": "ഫോൾഡറിന് ഒരു പേര് നൽകുക."
+    "errorNoName": "ഫോൾഡറിന് ഒരു പേര് നൽകുക.",
+    "deleteConfirmation": "'{{folderName}}' എന്ന ഫോൾഡർ ഇല്ലാതാക്കണമെന്ന് നിങ്ങൾക്ക് ഉറപ്പാണോ? ഉള്ളിലുള്ള പ്രമാണങ്ങൾ വർഗ്ഗീകരിക്കാത്തതിലേക്ക് മാറ്റപ്പെടും."
   },
   "documents": {
     "uncategorizedTitle": "വർഗ്ഗീകരിക്കാത്ത പ്രമാണങ്ങൾ"
@@ -92,6 +93,8 @@
     "addNewDocument": "പുതിയ പ്രമാണം ചേർക്കുക",
     "createNewFolder": "പുതിയ ഫോൾഡർ ഉണ്ടാക്കുക",
     "deleteDocument": "{{docName}} മായ്ക്കുക",
-    "shareDocument": "{{docName}} പങ്കിടുക"
+    "shareDocument": "{{docName}} പങ്കിടുക",
+    "deleteFolder": "{{folderName}} എന്ന ഫോൾഡർ മായ്ക്കുക",
+    "viewDocument": "{{docName}} കാണുക"
   }
 }

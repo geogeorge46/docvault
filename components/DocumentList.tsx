@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { Document, Folder } from '../types';
@@ -17,6 +18,7 @@ interface DocumentListProps {
   onAddVersion: (docId: string) => void;
   onViewDetails: (doc: Document) => void;
   onDelete: (docId: string) => void;
+  onDeleteFolder: (folderId: string) => void;
 }
 
 type SortOption = 'lastUpdated' | 'name' | 'createdAt';
@@ -29,7 +31,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
   onSelectFolder,
   onAddVersion, 
   onViewDetails, 
-  onDelete 
+  onDelete,
+  onDeleteFolder
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('lastUpdated');
@@ -133,6 +136,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                                 folder={folder}
                                 documentCount={documents.filter(d => d.folderId === folder.id).length}
                                 onClick={() => onSelectFolder(folder.id)}
+                                onDelete={() => onDeleteFolder(folder.id)}
                             />
                         ))}
                     </div>

@@ -18,7 +18,8 @@
     "folderNameLabel": "Folder Name",
     "folderNamePlaceholder": "e.g., Certificates",
     "createButton": "Create Folder",
-    "errorNoName": "Please enter a name for the folder."
+    "errorNoName": "Please enter a name for the folder.",
+    "deleteConfirmation": "Are you sure you want to delete the folder '{{folderName}}'? Documents inside will be moved to Uncategorized."
   },
   "documents": {
     "uncategorizedTitle": "Uncategorized Documents"
@@ -92,6 +93,8 @@
     "addNewDocument": "Add new document",
     "createNewFolder": "Create new folder",
     "deleteDocument": "Delete {{docName}}",
-    "shareDocument": "Share {{docName}}"
+    "shareDocument": "Share {{docName}}",
+    "deleteFolder": "Delete folder {{folderName}}",
+    "viewDocument": "View {{docName}}"
   }
 }
