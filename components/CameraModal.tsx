@@ -59,11 +59,10 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     
             const startStream = async () => {
                 try {
+                    // Removed specific width/height to maximize compatibility and prevent timeouts on some devices.
                     const mediaStream = await navigator.mediaDevices.getUserMedia({
                         video: { 
-                            facingMode: 'environment',
-                            width: { ideal: 1280 },
-                            height: { ideal: 720 }
+                            facingMode: 'environment'
                         }
                     });
                     setStream(mediaStream);
@@ -94,8 +93,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                             setCameraStatus('ready');
                         };
                     }
-                } catch (err) {
-                    console.error("Camera access denied:", err);
+                } catch (err: any) {
+                    console.error(`Camera access failed with ${err.name}:`, err);
                     setError(t('cameraModal.errorNoCamera'));
                     setCameraStatus('error');
                 }
