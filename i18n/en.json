@@ -77,6 +77,16 @@
     "download": "Download",
     "close": "Close"
   },
+  "authModal": {
+    "titleSetup": "Set a Password",
+    "titleUnlock": "Enter Password",
+    "descriptionSetup": "This password protects your document vault. You will need it to access your data. Don't lose it!",
+    "descriptionUnlock": "Enter your password to unlock your document vault.",
+    "passwordLabel": "Password",
+    "unlockButton": "Unlock",
+    "setupButton": "Create Vault",
+    "error": "Incorrect password. Please try again."
+  },
   "aria": {
     "addNewDocument": "Add new document",
     "createNewFolder": "Create new folder",
