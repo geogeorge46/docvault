@@ -46,27 +46,43 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             stream.getTracks().forEach(track => track.stop());
             setStream(null);
         }
+        imageCaptureRef.current = null;
     }, [stream]);
 
     useEffect(() => {
+        const videoElement = videoRef.current;
+
         if (isOpen) {
             const startStream = async () => {
                 try {
-                    const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-                        video: { facingMode: 'environment' } 
+                    const mediaStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'environment' }
                     });
                     setStream(mediaStream);
-                    if (videoRef.current) {
-                        videoRef.current.srcObject = mediaStream;
-                    }
-                    // Use ImageCapture if available for more reliable captures
-                    if (typeof window.ImageCapture !== 'undefined') {
-                        const track = mediaStream.getVideoTracks()[0];
-                        if (track) {
-                           imageCaptureRef.current = new window.ImageCapture(track);
-                        }
-                    } else {
-                        imageCaptureRef.current = null;
+                    if (videoElement) {
+                        videoElement.srcObject = mediaStream;
+                        // Use `onloadedmetadata` to ensure the video stream dimensions are available
+                        // before we attempt to initialize ImageCapture or capture a frame.
+                        videoElement.onloadedmetadata = () => {
+                            videoElement.play().catch(err => {
+                                console.error("Video play failed:", err);
+                                setError("Could not play video stream.");
+                            });
+
+                            if (typeof window.ImageCapture !== 'undefined') {
+                                try {
+                                    const track = mediaStream.getVideoTracks()[0];
+                                    if(track) {
+                                        imageCaptureRef.current = new window.ImageCapture(track);
+                                    }
+                                } catch (e) {
+                                    console.error("ImageCapture initialization failed: ", e);
+                                    imageCaptureRef.current = null; // fallback to canvas
+                                }
+                            } else {
+                                imageCaptureRef.current = null;
+                            }
+                        };
                     }
                 } catch (err) {
                     console.error("Camera access denied:", err);
@@ -84,11 +100,14 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             setProcessingState('idle');
             setShutterEffect(false);
             setSelectedFolderId(currentFolderId);
-            imageCaptureRef.current = null;
         }
 
         return () => {
-            if (isOpen) { // Ensure cleanup happens if component unmounts while open
+            if (videoElement) {
+                // Cleanup event listener to prevent memory leaks
+                videoElement.onloadedmetadata = null;
+            }
+            if (isOpen) {
                 cleanup();
             }
         };
@@ -97,14 +116,13 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     const handleCapture = useCallback(async () => {
         if (!stream?.active) return;
     
-        // Make shutter effect faster and more subtle
         setShutterEffect(true);
         setTimeout(() => setShutterEffect(false), 100);
     
         try {
             let imageDataUrl: string;
     
-            // Use modern ImageCapture API if available for more reliable captures
+            // Use modern ImageCapture API for more reliable captures.
             if (imageCaptureRef.current) {
                 const blob = await imageCaptureRef.current.takePhoto();
                 imageDataUrl = await new Promise((resolve, reject) => {
@@ -114,34 +132,30 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     reader.readAsDataURL(blob);
                 });
             } else {
-                // Fallback to drawing video frame to canvas
-                if (!videoRef.current || !canvasRef.current) {
-                    throw new Error("Video or canvas ref not available for capture.");
-                }
+                // Fallback to drawing video frame to canvas.
                 const video = videoRef.current;
                 const canvas = canvasRef.current;
+                if (!video || !canvas) {
+                    throw new Error("Video or canvas ref not available for capture.");
+                }
                 
-                imageDataUrl = await new Promise<string>((resolve, reject) => {
-                    requestAnimationFrame(() => {
-                        try {
-                            if (video.videoWidth === 0 || video.videoHeight === 0) {
-                                return reject(new Error("Video has no dimensions. Capture aborted."));
-                            }
-                            canvas.width = video.videoWidth;
-                            canvas.height = video.videoHeight;
-                            const context = canvas.getContext('2d');
-                            if (!context) return reject(new Error("Could not get canvas context."));
-                            
-                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                            resolve(canvas.toDataURL('image/jpeg', 0.9));
-                        } catch (e) {
-                            reject(e);
-                        }
-                    });
-                });
+                // Ensure video is ready before capturing. This prevents black/empty frames.
+                if (video.readyState < video.HAVE_CURRENT_DATA || video.videoWidth === 0) {
+                    throw new Error("Video stream is not ready for capture.");
+                }
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext('2d');
+                if (!context) {
+                    throw new Error("Could not get canvas context.");
+                }
+                
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
             }
     
-            if (imageDataUrl) {
+            if (imageDataUrl && imageDataUrl !== 'data:,') {
                 setCapturedImages(prev => [...prev, imageDataUrl]);
             } else {
                 throw new Error("Image capture resulted in empty data.");
