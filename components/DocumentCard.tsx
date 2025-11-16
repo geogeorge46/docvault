@@ -11,6 +11,7 @@ import { EyeIcon } from './icons/EyeIcon';
 import { ShareIcon } from './icons/ShareIcon';
 import { DownloadIcon } from './icons/DownloadIcon';
 import { TrashIcon } from './icons/TrashIcon';
+import { ZipIcon } from './icons/ZipIcon';
 
 interface DocumentCardProps {
   document: Document;
@@ -106,6 +107,13 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
                             </div>
                         </div>
                     </a>
+                );
+            case 'application/zip':
+            case 'application/x-zip-compressed':
+                return (
+                    <div className="relative group flex-grow flex items-center justify-center bg-slate-200/50 rounded-t-lg overflow-hidden aspect-video">
+                        <ZipIcon className="w-20 h-20 text-slate-400" />
+                    </div>
                 );
             default:
                 return (

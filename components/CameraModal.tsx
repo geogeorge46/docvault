@@ -4,6 +4,14 @@ import { useTranslation } from '../hooks/useTranslation';
 import { XIcon } from './icons/XIcon';
 import { TrashIcon } from './icons/TrashIcon';
 
+// Add JSZip to the window interface
+declare global {
+    interface Window {
+        jspdf: any;
+        JSZip: any;
+    }
+}
+
 // Props interface
 interface CameraModalProps {
   isOpen: boolean;
@@ -12,6 +20,8 @@ interface CameraModalProps {
   folders: Folder[];
   currentFolderId: string | null;
 }
+
+type ProcessingState = 'idle' | 'pdf' | 'zip';
 
 const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocument, folders, currentFolderId }) => {
     const { t } = useTranslation();
@@ -25,7 +35,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     const [docName, setDocName] = useState('');
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
     const [error, setError] = useState<string | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [processingState, setProcessingState] = useState<ProcessingState>('idle');
     const [shutterEffect, setShutterEffect] = useState(false);
 
 
@@ -60,7 +70,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             setView('capture');
             setDocName('');
             setError(null);
-            setIsProcessing(false);
+            setProcessingState('idle');
             setShutterEffect(false);
             setSelectedFolderId(currentFolderId);
         }
@@ -113,44 +123,41 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
         setCapturedImages(prev => prev.filter((_, i) => i !== index));
     };
     
-    const handleSave = async () => {
+    const validateForm = (): boolean => {
         setError(null);
         if (!docName.trim()) {
             setError(t('cameraModal.errorNoName'));
-            return;
+            return false;
         }
         if (capturedImages.length === 0) {
             setError(t('cameraModal.errorNoCapture'));
-            return;
+            return false;
         }
+        return true;
+    }
 
-        setIsProcessing(true);
+    const handleSaveAsPdf = async () => {
+        if (!validateForm()) return;
+
+        setProcessingState('pdf');
         
-        // Use a timeout to allow UI to update before blocking with PDF generation
         setTimeout(async () => {
             try {
-                // @ts-ignore
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF('p', 'pt', 'a4');
                 const a4Width = 595.28;
                 const a4Height = 841.89;
                 
                 for (let i = 0; i < capturedImages.length; i++) {
-                    if (i > 0) {
-                        pdf.addPage();
-                    }
+                    if (i > 0) pdf.addPage();
                     const imgData = capturedImages[i];
                     const img = new Image();
                     img.src = imgData;
                     await new Promise(resolve => { img.onload = resolve; });
                     
-                    const imgWidth = img.width;
-                    const imgHeight = img.height;
-                    const ratio = Math.min(a4Width / imgWidth, a4Height / imgHeight);
-                    
-                    const pdfImgWidth = imgWidth * ratio;
-                    const pdfImgHeight = imgHeight * ratio;
-                    
+                    const ratio = Math.min(a4Width / img.width, a4Height / img.height);
+                    const pdfImgWidth = img.width * ratio;
+                    const pdfImgHeight = img.height * ratio;
                     const x = (a4Width - pdfImgWidth) / 2;
                     const y = (a4Height - pdfImgHeight) / 2;
 
@@ -159,23 +166,54 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                 
                 const pdfDataUrl = pdf.output('datauristring');
                 
-                const newVersion = {
+                onAddDocument(docName.trim(), selectedFolderId, {
                     fileDataUrl: pdfDataUrl,
                     fileName: `${docName.trim()}.pdf`,
                     fileType: 'application/pdf',
                     versionNotes: `Scanned document with ${capturedImages.length} page(s).`,
-                };
-
-                onAddDocument(docName.trim(), selectedFolderId, newVersion);
+                });
                 onClose();
 
             } catch (e) {
                 console.error("Failed to generate PDF", e);
                 setError("Failed to generate PDF. Please try again.");
-                setIsProcessing(false);
+                setProcessingState('idle');
             }
         }, 100);
     };
+
+    const handleSaveAsZip = async () => {
+        if (!validateForm()) return;
+        
+        setProcessingState('zip');
+
+        setTimeout(async () => {
+            try {
+                const zip = new window.JSZip();
+                capturedImages.forEach((imgDataUrl, index) => {
+                    // Strip the data URL prefix to get pure base64
+                    const base64Data = imgDataUrl.split(',')[1];
+                    zip.file(`page_${index + 1}.jpg`, base64Data, { base64: true });
+                });
+
+                const zipBase64 = await zip.generateAsync({ type: 'base64' });
+                const zipDataUrl = `data:application/zip;base64,${zipBase64}`;
+
+                onAddDocument(docName.trim(), selectedFolderId, {
+                    fileDataUrl: zipDataUrl,
+                    fileName: `${docName.trim()}.zip`,
+                    fileType: 'application/zip',
+                    versionNotes: `ZIP archive with ${capturedImages.length} scanned page(s).`,
+                });
+                onClose();
+
+            } catch (e) {
+                console.error("Failed to generate ZIP", e);
+                setError("Failed to generate ZIP. Please try again.");
+                setProcessingState('idle');
+            }
+        }, 100);
+    }
 
     if (!isOpen) return null;
 
@@ -208,7 +246,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                 {view === 'form' && (
                     <div className="absolute inset-0 p-6 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
                         <div className="w-full max-w-sm bg-white p-6 rounded-lg space-y-4">
-                            <h3 className="text-lg font-bold">{t('cameraModal.saveAsPdf')}</h3>
+                            <h3 className="text-lg font-bold">{t('cameraModal.saveOptionsTitle')}</h3>
                             <div>
                                 <label htmlFor="scannedDocName" className="block text-sm font-medium text-slate-700 mb-1">{t('cameraModal.docNameLabel')}</label>
                                 <input 
@@ -236,12 +274,16 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                                 </select>
                             </div>
                             {error && <p className="text-sm text-red-500">{error}</p>}
-                            <div className="flex justify-end space-x-3 pt-2">
-                                <button onClick={() => setView('capture')} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 hover:bg-slate-100 transition-colors" disabled={isProcessing}>
+                            <div className="flex justify-end items-center space-x-3 pt-2">
+                                <button onClick={() => setView('capture')} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 hover:bg-slate-100 transition-colors" disabled={processingState !== 'idle'}>
                                     {t('uploadModal.cancel')}
                                 </button>
-                                <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:bg-indigo-400 disabled:cursor-wait" disabled={isProcessing}>
-                                    {isProcessing ? '...' : t('uploadModal.save')}
+                                <div className="flex-grow" />
+                                <button onClick={handleSaveAsZip} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:bg-blue-400 disabled:cursor-wait" disabled={processingState !== 'idle'}>
+                                    {processingState === 'zip' ? t('cameraModal.savingZip') : t('cameraModal.saveAsZip')}
+                                </button>
+                                <button onClick={handleSaveAsPdf} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:bg-indigo-400 disabled:cursor-wait" disabled={processingState !== 'idle'}>
+                                    {processingState === 'pdf' ? t('cameraModal.savingPdf') : t('cameraModal.saveAsPdf')}
                                 </button>
                             </div>
                         </div>
