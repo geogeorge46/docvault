@@ -26,6 +26,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
     const [error, setError] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [shutterEffect, setShutterEffect] = useState(false);
+
 
     const cleanup = useCallback(() => {
         if (stream) {
@@ -59,6 +61,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             setDocName('');
             setError(null);
             setIsProcessing(false);
+            setShutterEffect(false);
             setSelectedFolderId(currentFolderId);
         }
 
@@ -69,22 +72,42 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
         };
     }, [isOpen, t, cleanup, currentFolderId]);
 
-    const handleCapture = () => {
-        if (!videoRef.current || !canvasRef.current) return;
-        
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        const context = canvas.getContext('2d');
-        if (context) {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-            setCapturedImages(prev => [...prev, imageDataUrl]);
-        }
-    };
+    const handleCapture = useCallback(() => {
+        if (!videoRef.current || !canvasRef.current || !stream?.active) return;
+    
+        // 1. Trigger shutter effect for immediate visual feedback
+        setShutterEffect(true);
+        setTimeout(() => setShutterEffect(false), 150);
+    
+        // 2. Defer the actual capture to the next paint cycle
+        requestAnimationFrame(() => {
+            if (!videoRef.current || !canvasRef.current) return;
+    
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+    
+            // This can happen if the stream hasn't initialized fully
+            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                console.warn("Video has no dimensions yet. Capture aborted.");
+                return;
+            }
+    
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+    
+            const context = canvas.getContext('2d');
+            if (context) {
+                try {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                    setCapturedImages(prev => [...prev, imageDataUrl]);
+                } catch (e) {
+                    console.error("Error drawing image to canvas:", e);
+                    setError("Failed to capture image. Please try again.");
+                }
+            }
+        });
+    }, [stream]);
     
     const handleDeleteImage = (index: number) => {
         setCapturedImages(prev => prev.filter((_, i) => i !== index));
@@ -176,8 +199,11 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-300 ${view === 'form' ? 'opacity-0' : 'opacity-100'}`}
+                    className={`absolute top-0 left-0 w-full h-full object-cover transform-gpu transition-opacity duration-300 ${view === 'form' ? 'opacity-0' : 'opacity-100'}`}
                 />
+
+                {/* Shutter Effect Overlay */}
+                <div className={`absolute inset-0 bg-white/80 transition-opacity duration-150 z-10 ${shutterEffect ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
                 
                 {view === 'form' && (
                     <div className="absolute inset-0 p-6 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
