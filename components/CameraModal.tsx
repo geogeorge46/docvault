@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DocumentVersion, Folder } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
@@ -166,14 +165,18 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                 </button>
             </header>
             
-            <main className="flex-grow bg-slate-900 relative flex items-center justify-center overflow-hidden">
-                {error && !stream && <p className="text-white text-center p-4">{error}</p>}
+            <main className="flex-grow bg-slate-900 relative overflow-hidden">
+                {error && !stream && (
+                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <p className="text-white text-center bg-slate-800/50 p-4 rounded-lg">{error}</p>
+                    </div>
+                )}
                 
                 <video
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className={`w-full h-full object-contain transition-opacity duration-300 ${view === 'form' ? 'opacity-0' : 'opacity-100'}`}
+                    className={`absolute top-0 left-0 w-full h-full object-cover transition-opacity duration-300 ${view === 'form' ? 'opacity-0' : 'opacity-100'}`}
                 />
                 
                 {view === 'form' && (
