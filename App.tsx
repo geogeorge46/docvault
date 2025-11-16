@@ -8,9 +8,10 @@ import UploadModal from './components/UploadModal';
 import DocumentDetailModal from './components/DocumentDetailModal';
 import { PlusIcon } from './components/icons/PlusIcon';
 import { useTranslation } from './hooks/useTranslation';
+import { sampleDocuments } from './sampleData';
 
 const App: React.FC = () => {
-  const [documents, setDocuments] = useLocalStorage<Document[]>('documents', []);
+  const [documents, setDocuments] = useLocalStorage<Document[]>('documents', sampleDocuments);
   const [isUploadModalOpen, setUploadModalOpen] = useState(false);
   const [isDetailModalOpen, setDetailModalOpen] = useState(false);
   const [documentToUpdateId, setDocumentToUpdateId] = useState<string | null>(null);
