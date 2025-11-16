@@ -70,8 +70,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     
                     if (videoElement) {
                         videoElement.srcObject = mediaStream;
-                        // oncanplay is a more reliable event that the stream is actually ready to be used.
-                        videoElement.oncanplay = () => {
+                        // onloadeddata fires when the first frame is available, which is faster than oncanplay.
+                        videoElement.onloadeddata = () => {
                             videoElement.play().catch(err => {
                                 console.error("Video play failed:", err);
                                 setError("Could not play video stream.");
@@ -115,7 +115,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     
         return () => {
             if (videoElement) {
-                videoElement.oncanplay = null;
+                videoElement.onloadeddata = null;
             }
             if (isOpen) {
                 cleanup();
