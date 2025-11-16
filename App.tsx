@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Document, DocumentVersion, Folder } from './types';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -12,7 +11,6 @@ import { PlusIcon } from './components/icons/PlusIcon';
 import { FolderPlusIcon } from './components/icons/FolderPlusIcon';
 import { useTranslation } from './hooks/useTranslation';
 import { sampleDocuments } from './sampleData';
-import FileViewerModal from './components/FileViewerModal';
 
 // --- Crypto Utilities ---
 const textEncoder = new TextEncoder();
@@ -173,7 +171,6 @@ const App: React.FC = () => {
     const [isCreateFolderModalOpen, setCreateFolderModalOpen] = useState(false);
     const [documentToUpdateId, setDocumentToUpdateId] = useState<string | null>(null);
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
-    const [fileToView, setFileToView] = useState<DocumentVersion | null>(null);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const { t } = useTranslation();
 
@@ -254,14 +251,6 @@ const App: React.FC = () => {
         setSelectedDocument(doc);
         setDetailModalOpen(true);
     }, []);
-    
-    const handleOpenFile = useCallback((version: DocumentVersion) => {
-        setFileToView(version);
-    }, []);
-
-    const handleCloseFileViewer = () => {
-        setFileToView(null);
-    };
 
     const handleAddDocument = useCallback((name: string, folderId: string | null, version: Omit<DocumentVersion, 'versionId' | 'uploadedAt'>) => {
         const newDocument: Document = {
@@ -332,7 +321,6 @@ const App: React.FC = () => {
                     onAddVersion={handleOpenUploadModalForVersion}
                     onViewDetails={handleOpenDetailModal}
                     onDelete={handleDeleteDocument}
-                    onOpenFile={handleOpenFile}
                 />
             </main>
 
@@ -378,14 +366,6 @@ const App: React.FC = () => {
                     isOpen={isDetailModalOpen}
                     onClose={() => setDetailModalOpen(false)}
                     document={selectedDocument}
-                    onOpenFile={handleOpenFile}
-                />
-            )}
-
-            {fileToView && (
-                <FileViewerModal
-                    version={fileToView}
-                    onClose={handleCloseFileViewer}
                 />
             )}
         </div>

@@ -1,7 +1,5 @@
-
-
 import React, { useMemo } from 'react';
-import { Document, DocumentVersion } from '../types';
+import { Document } from '../types';
 import { FileIcon } from './icons/FileIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { PdfIcon } from './icons/PdfIcon';
@@ -15,7 +13,6 @@ interface DocumentCardProps {
   onAddVersion: (docId: string) => void;
   onViewDetails: (doc: Document) => void;
   onDelete: (docId: string) => void;
-  onOpenFile: (version: DocumentVersion) => void;
 }
 
 const getFileSizeFromBase64 = (base64String: string): number => {
@@ -34,7 +31,7 @@ const formatBytes = (bytes: number, decimals = 2): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onViewDetails, onDelete, onOpenFile }) => {
+const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onViewDetails, onDelete }) => {
   const latestVersion = document.versions[0];
   const { t } = useTranslation();
 
@@ -100,12 +97,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden transform hover:-translate-y-1">
-      <div 
-        onClick={() => latestVersion && onOpenFile(latestVersion)}
-        className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group cursor-pointer"
-        role="button"
-        aria-label={`View ${document.name}`}
-      >
+      <div className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group">
         {isImage ? (
           <img 
             src={latestVersion.fileDataUrl} 
@@ -121,10 +113,18 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
           <FileIcon className="w-16 h-16 text-slate-300" />
         )}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center p-4">
-            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 flex flex-col items-center text-white text-center">
-                <EyeIcon className="w-10 h-10" />
-                <span className="mt-2 font-semibold">{t('documentCard.view')}</span>
-            </div>
+          {isPdf && (
+            <a
+              href={latestVersion.fileDataUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 bg-white/90 text-slate-800 font-bold py-2 px-4 rounded-full inline-flex items-center shadow-lg"
+              onClick={(e) => e.stopPropagation()} // Prevent card click-through
+            >
+              <EyeIcon className="w-5 h-5 mr-2" />
+              <span>{t('documentCard.view')}</span>
+            </a>
+          )}
         </div>
       </div>
 
