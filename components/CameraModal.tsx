@@ -23,6 +23,7 @@ interface CameraModalProps {
 }
 
 type ProcessingState = 'idle' | 'pdf' | 'zip';
+type CameraStatus = 'initializing' | 'ready' | 'error';
 
 const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocument, folders, currentFolderId }) => {
     const { t } = useTranslation();
@@ -38,6 +39,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     const [selectedFolderId, setSelectedFolderId] = useState<string | null>(currentFolderId);
     const [error, setError] = useState<string | null>(null);
     const [processingState, setProcessingState] = useState<ProcessingState>('idle');
+    const [cameraStatus, setCameraStatus] = useState<CameraStatus>('initializing');
     const [shutterEffect, setShutterEffect] = useState(false);
 
 
@@ -51,24 +53,27 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
 
     useEffect(() => {
         const videoElement = videoRef.current;
-
+    
         if (isOpen) {
+            setCameraStatus('initializing');
+    
             const startStream = async () => {
                 try {
                     const mediaStream = await navigator.mediaDevices.getUserMedia({
                         video: { facingMode: 'environment' }
                     });
                     setStream(mediaStream);
+    
                     if (videoElement) {
                         videoElement.srcObject = mediaStream;
-                        // Use `onloadedmetadata` to ensure the video stream dimensions are available
-                        // before we attempt to initialize ImageCapture or capture a frame.
-                        videoElement.onloadedmetadata = () => {
+                        // oncanplay is a more reliable event that the stream is actually ready to be used.
+                        videoElement.oncanplay = () => {
                             videoElement.play().catch(err => {
                                 console.error("Video play failed:", err);
                                 setError("Could not play video stream.");
+                                setCameraStatus('error');
                             });
-
+    
                             if (typeof window.ImageCapture !== 'undefined') {
                                 try {
                                     const track = mediaStream.getVideoTracks()[0];
@@ -77,22 +82,23 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                                     }
                                 } catch (e) {
                                     console.error("ImageCapture initialization failed: ", e);
-                                    imageCaptureRef.current = null; // fallback to canvas
+                                    imageCaptureRef.current = null;
                                 }
                             } else {
                                 imageCaptureRef.current = null;
                             }
+                            setCameraStatus('ready');
                         };
                     }
                 } catch (err) {
                     console.error("Camera access denied:", err);
                     setError(t('cameraModal.errorNoCamera'));
+                    setCameraStatus('error');
                 }
             };
             startStream();
         } else {
             cleanup();
-            // Reset state on close
             setCapturedImages([]);
             setView('capture');
             setDocName('');
@@ -100,12 +106,12 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             setProcessingState('idle');
             setShutterEffect(false);
             setSelectedFolderId(currentFolderId);
+            setCameraStatus('initializing');
         }
-
+    
         return () => {
             if (videoElement) {
-                // Cleanup event listener to prevent memory leaks
-                videoElement.onloadedmetadata = null;
+                videoElement.oncanplay = null;
             }
             if (isOpen) {
                 cleanup();
@@ -114,7 +120,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     }, [isOpen, t, cleanup, currentFolderId]);
 
     const handleCapture = useCallback(async () => {
-        if (!stream?.active) return;
+        if (cameraStatus !== 'ready' || !stream?.active) return;
     
         setShutterEffect(true);
         setTimeout(() => setShutterEffect(false), 100);
@@ -122,7 +128,6 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
         try {
             let imageDataUrl: string;
     
-            // Use modern ImageCapture API for more reliable captures.
             if (imageCaptureRef.current) {
                 const blob = await imageCaptureRef.current.takePhoto();
                 imageDataUrl = await new Promise((resolve, reject) => {
@@ -132,24 +137,19 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     reader.readAsDataURL(blob);
                 });
             } else {
-                // Fallback to drawing video frame to canvas.
                 const video = videoRef.current;
                 const canvas = canvasRef.current;
-                if (!video || !canvas) {
-                    throw new Error("Video or canvas ref not available for capture.");
-                }
+                if (!video || !canvas) throw new Error("Video or canvas ref not available.");
                 
-                // Ensure video is ready before capturing. This prevents black/empty frames.
-                if (video.readyState < video.HAVE_CURRENT_DATA || video.videoWidth === 0) {
+                // Use a stricter check: HAVE_FUTURE_DATA (3) means we have the current frame and the next one.
+                if (video.readyState < 3 || video.videoWidth === 0) {
                     throw new Error("Video stream is not ready for capture.");
                 }
 
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 const context = canvas.getContext('2d');
-                if (!context) {
-                    throw new Error("Could not get canvas context.");
-                }
+                if (!context) throw new Error("Could not get canvas context.");
                 
                 context.drawImage(video, 0, 0, canvas.width, canvas.height);
                 imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
@@ -165,7 +165,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             console.error("Capture failed:", e);
             setError("Failed to capture image. Please try again.");
         }
-    }, [stream]);
+    }, [stream, cameraStatus]);
     
     const handleDeleteImage = (index: number) => {
         setCapturedImages(prev => prev.filter((_, i) => i !== index));
@@ -274,10 +274,12 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                 </button>
             </header>
             
-            <main className="flex-grow bg-slate-900 relative overflow-hidden">
-                {error && !stream && (
-                    <div className="absolute inset-0 flex items-center justify-center p-4">
-                        <p className="text-white text-center bg-slate-800/50 p-4 rounded-lg">{error}</p>
+            <main className="flex-grow bg-slate-900 relative overflow-hidden flex items-center justify-center">
+                {cameraStatus === 'initializing' && <p className="text-white animate-pulse">Initializing Camera...</p>}
+                
+                {cameraStatus === 'error' && (
+                    <div className="p-4">
+                        <p className="text-white text-center bg-red-900/50 p-4 rounded-lg">{error}</p>
                     </div>
                 )}
                 
@@ -285,7 +287,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     ref={videoRef}
                     autoPlay
                     playsInline
-                    className={`absolute top-0 left-0 w-full h-full object-cover transform-gpu transition-opacity duration-300 ${view === 'form' ? 'opacity-0' : 'opacity-100'}`}
+                    className={`absolute top-0 left-0 w-full h-full object-cover transform-gpu transition-opacity duration-300 ${view === 'form' || cameraStatus !== 'ready' ? 'opacity-0' : 'opacity-100'}`}
                 />
 
                 {/* Shutter Effect Overlay */}
@@ -379,7 +381,8 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     <div className="w-24"></div>
                      <button
                         onClick={handleCapture}
-                        className="w-20 h-20 rounded-full bg-white flex items-center justify-center ring-4 ring-slate-500 hover:ring-slate-400 transition-all"
+                        disabled={cameraStatus !== 'ready'}
+                        className="w-20 h-20 rounded-full bg-white flex items-center justify-center ring-4 ring-slate-500 hover:ring-slate-400 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:ring-slate-700"
                         aria-label={t('cameraModal.capturePage')}
                       >
                          <div className="w-16 h-16 rounded-full bg-white border-2 border-slate-800"></div>
