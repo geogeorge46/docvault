@@ -48,7 +48,8 @@
     "view": "View",
     "addNewVersion": "Add Version",
     "share": "Share",
-    "shareError": "Your browser does not support sharing files directly."
+    "shareError": "Your browser does not support sharing files directly.",
+    "thumbnailAlt": "Thumbnail preview of {{docName}}"
   },
   "uploadModal": {
     "titleNew": "Add New Document",

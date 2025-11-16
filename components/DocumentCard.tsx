@@ -146,7 +146,15 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
             {latestVersion && (
               <>
                 <div className="flex items-start text-slate-600" title={latestVersion.fileName}>
-                  <FileIcon className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                  {isImage ? (
+                    <img 
+                      src={latestVersion.fileDataUrl} 
+                      alt={t('documentCard.thumbnailAlt', { docName: document.name })} 
+                      className="w-6 h-6 mr-2 flex-shrink-0 mt-0.5 rounded object-cover border border-slate-200" 
+                    />
+                  ) : (
+                    <FileIcon className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
+                  )}
                   <span className="truncate">{latestVersion.fileName}</span>
                 </div>
                 <div className="flex items-center text-slate-500">
