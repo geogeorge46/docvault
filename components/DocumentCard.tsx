@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Document } from '../types';
 import { FileIcon } from './icons/FileIcon';
@@ -31,182 +32,137 @@ const formatBytes = (bytes: number, decimals = 2): string => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
+const TrashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.124-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.077-2.09.921-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+    </svg>
+);
+
 const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onViewDetails, onDelete }) => {
-  const latestVersion = document.versions[0];
-  const { t } = useTranslation();
+    const { t } = useTranslation();
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-  };
+    const latestVersion = useMemo(() => document.versions[0], [document.versions]);
 
-  const handleDeleteClick = () => {
-    if (window.confirm(t('documentCard.deleteConfirmation'))) {
-        onDelete(document.id);
-    }
-  };
+    const lastUpdatedDate = useMemo(() => {
+        return new Date(latestVersion.uploadedAt).toLocaleDateString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric'
+        });
+    }, [latestVersion.uploadedAt]);
 
-  const handleShareClick = async () => {
-    if (!latestVersion) return;
+    const fileSize = useMemo(() => {
+        const bytes = getFileSizeFromBase64(latestVersion.fileDataUrl);
+        return formatBytes(bytes);
+    }, [latestVersion.fileDataUrl]);
 
-    if (!navigator.share) {
-      alert(t('documentCard.shareError'));
-      return;
-    }
+    const handleDelete = () => {
+        if (window.confirm(t('documentCard.deleteConfirmation'))) {
+            onDelete(document.id);
+        }
+    };
 
-    try {
-      const response = await fetch(latestVersion.fileDataUrl);
-      const blob = await response.blob();
-      const file = new File([blob], latestVersion.fileName, { type: latestVersion.fileType });
+    const handleShare = async () => {
+        try {
+            const response = await fetch(latestVersion.fileDataUrl);
+            const blob = await response.blob();
+            const file = new File([blob], latestVersion.fileName, { type: latestVersion.fileType });
 
-      const shareData = {
-        files: [file],
-        title: document.name,
-        text: `Latest version of ${document.name}`,
-      };
+            if (navigator.share && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: document.name,
+                });
+            } else {
+                throw new Error('Share API not supported');
+            }
+        } catch (error) {
+            console.error('Share failed:', error);
+            alert(t('documentCard.shareError'));
+        }
+    };
 
-      if (navigator.canShare && navigator.canShare(shareData)) {
-        await navigator.share(shareData);
-      } else if (!navigator.canShare) {
-        // If canShare is not supported, just try to share
-        await navigator.share(shareData);
-      } else {
-        // canShare() returned false
-        alert(t('documentCard.shareError'));
-      }
-    } catch (error: any) {
-      // Don't show an alert to the user for AbortError (user cancellation)
-      if (error.name !== 'AbortError') {
-        console.error('Share failed:', error);
-        alert(t('documentCard.shareError'));
-      }
-    }
-  };
+    const renderPreview = () => {
+        const fileType = latestVersion.fileType;
+        if (fileType.startsWith('image/')) {
+            return (
+                <div className="relative group flex-grow rounded-t-lg overflow-hidden aspect-video bg-slate-200">
+                    <img src={latestVersion.fileDataUrl} alt={t('documentCard.thumbnailAlt', { docName: document.name })} className="w-full h-full object-cover" />
+                </div>
+            );
+        }
 
-  const formattedFileSize = useMemo(() => {
-    if (!latestVersion?.fileDataUrl) {
-      return formatBytes(0);
-    }
-    const bytes = getFileSizeFromBase64(latestVersion.fileDataUrl);
-    return formatBytes(bytes);
-  }, [latestVersion?.fileDataUrl]);
+        switch (fileType) {
+            case 'application/pdf':
+                return (
+                    <a
+                        href={latestVersion.fileDataUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={t('aria.viewDocument', { docName: document.name })}
+                        className="relative group flex-grow flex items-center justify-center bg-slate-200/50 rounded-t-lg overflow-hidden aspect-video cursor-pointer"
+                    >
+                        <PdfIcon className="w-24 h-24 text-slate-400" />
+                        {/* Hover Overlay */}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                            <div className="flex items-center text-white font-bold text-lg">
+                                <EyeIcon className="w-6 h-6 mr-2" />
+                                {t('documentCard.view')}
+                            </div>
+                        </div>
+                    </a>
+                );
+            default:
+                return (
+                    <div className="relative group flex-grow flex items-center justify-center bg-slate-200/50 rounded-t-lg overflow-hidden aspect-video">
+                        <FileIcon className="w-20 h-20 text-slate-400" />
+                    </div>
+                );
+        }
+    };
 
-  const isImage = latestVersion && latestVersion.fileType.startsWith('image/');
-  const isPdf = latestVersion && latestVersion.fileType === 'application/pdf';
-
-  const PreviewContent = (
-    <>
-      {isImage ? (
-        <img 
-          src={latestVersion.fileDataUrl} 
-          alt={`Preview of ${document.name}`}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
-        />
-      ) : isPdf ? (
-          <div className="flex flex-col items-center justify-center text-red-500">
-              <PdfIcon className="w-16 h-16" />
-              <span className="mt-2 text-xs font-bold uppercase tracking-wider">PDF</span>
-          </div>
-      ) : (
-        <FileIcon className="w-16 h-16 text-slate-300" />
-      )}
-      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center p-4 pointer-events-none">
-        {isPdf && (
-          <div
-            className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 bg-white/90 text-slate-800 font-bold py-2 px-4 rounded-full inline-flex items-center shadow-lg"
-          >
-            <EyeIcon className="w-5 h-5 mr-2" />
-            <span>{t('documentCard.view')}</span>
-          </div>
-        )}
-      </div>
-    </>
-  );
-
-  return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden transform hover:-translate-y-1">
-      {isPdf ? (
-        <a
-          href={latestVersion.fileDataUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group"
-          aria-label={t('aria.viewDocument', { docName: document.name })}
-        >
-          {PreviewContent}
-        </a>
-      ) : (
-        <div className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group">
-          {PreviewContent}
-        </div>
-      )}
-
-      <div className="p-4 flex-grow">
-        <div className="flex items-start justify-between">
-            <h2 className="text-xl font-bold text-slate-800 pr-2">{document.name}</h2>
-            <button onClick={handleDeleteClick} className="flex-shrink-0 text-slate-400 hover:text-red-500 text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded hover:bg-slate-100 transition-colors" aria-label={t('aria.deleteDocument', { docName: document.name })}>{t('documentCard.delete')}</button>
-        </div>
-        <div className="mt-3 space-y-1.5 text-sm">
-            <div className="flex items-center text-slate-500">
-              <FileIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-              <span>
-                {document.versions.length > 1
-                  ? t('documentCard.versions_plural', { count: document.versions.length })
-                  : t('documentCard.versions', { count: document.versions.length })
-                }
-              </span>
+    return (
+        <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col">
+            {renderPreview()}
+            <div className="p-4 flex-grow flex flex-col">
+                <div className="flex items-start justify-between">
+                    <h3 className="font-bold text-lg text-slate-800 mb-2 flex-1 pr-2" title={document.name}>
+                        {document.name}
+                    </h3>
+                    {latestVersion.fileType.startsWith('image/') && (
+                        <img 
+                            src={latestVersion.fileDataUrl} 
+                            alt={t('documentCard.thumbnailAlt', { docName: document.name })}
+                            className="w-10 h-10 object-cover rounded-md border border-slate-200"
+                        />
+                    )}
+                </div>
+                <div className="space-y-2 mt-auto text-xs text-slate-500">
+                    <div className="flex items-center">
+                        <ClockIcon className="w-3.5 h-3.5 mr-1.5" />
+                        <span>{t('documentCard.lastUpdated', { date: lastUpdatedDate })}</span>
+                    </div>
+                    <div className="flex items-center">
+                        <DatabaseIcon className="w-3.5 h-3.5 mr-1.5" />
+                        <span>{t('documentCard.fileSize', { size: fileSize })} | {t(document.versions.length > 1 ? 'documentCard.versions_plural' : 'documentCard.versions', { count: document.versions.length })}</span>
+                    </div>
+                </div>
             </div>
-            {latestVersion && (
-              <>
-                <div className="flex items-start text-slate-600" title={latestVersion.fileName}>
-                  {isImage ? (
-                    <img 
-                      src={latestVersion.fileDataUrl} 
-                      alt={t('documentCard.thumbnailAlt', { docName: document.name })} 
-                      className="w-6 h-6 mr-2 flex-shrink-0 mt-0.5 rounded object-cover border border-slate-200" 
-                    />
-                  ) : (
-                    <FileIcon className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
-                  )}
-                  <span className="truncate">{latestVersion.fileName}</span>
+            <div className="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-sm font-medium">
+                <div className="flex items-center space-x-2">
+                    <button onClick={() => onViewDetails(document)} className="text-indigo-600 hover:underline">{t('documentCard.viewDetails')}</button>
+                    <span className="text-slate-300">|</span>
+                    <button onClick={() => onAddVersion(document.id)} className="text-indigo-600 hover:underline">{t('documentCard.addNewVersion')}</button>
                 </div>
-                <div className="flex items-center text-slate-500">
-                    <DatabaseIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span>{t('documentCard.fileSize', { size: formattedFileSize })}</span>
+                <div className="flex items-center space-x-2">
+                    <button onClick={handleShare} aria-label={t('aria.shareDocument', { docName: document.name })} className="p-1.5 rounded-full text-slate-500 hover:bg-slate-200 transition-colors">
+                        <ShareIcon className="w-5 h-5" />
+                    </button>
+                    <button onClick={handleDelete} aria-label={t('aria.deleteDocument', { docName: document.name })} className="p-1.5 rounded-full text-slate-500 hover:bg-red-100 hover:text-red-600 transition-colors">
+                       <TrashIcon className="w-5 h-5" />
+                    </button>
                 </div>
-                <div className="flex items-center text-slate-500">
-                    <ClockIcon className="w-4 h-4 mr-2 flex-shrink-0" />
-                    <span>{t('documentCard.lastUpdated', { date: formatDate(latestVersion.uploadedAt) })}</span>
-                </div>
-              </>
-            )}
+            </div>
         </div>
-      </div>
-      <div className="bg-slate-50 p-2 grid grid-cols-3 gap-2">
-        <button 
-          onClick={() => onViewDetails(document)}
-          className="text-sm font-semibold text-center text-indigo-600 hover:bg-indigo-100 py-2 px-3 rounded-md transition-colors"
-        >
-          {t('documentCard.viewDetails')}
-        </button>
-        <button
-          onClick={handleShareClick}
-          aria-label={t('aria.shareDocument', { docName: document.name })}
-          className="text-sm font-semibold text-center text-indigo-600 hover:bg-indigo-100 py-2 px-3 rounded-md transition-colors flex items-center justify-center"
-        >
-          <ShareIcon className="w-4 h-4 mr-1.5" />
-          {t('documentCard.share')}
-        </button>
-        <button 
-          onClick={() => onAddVersion(document.id)}
-          className="text-sm font-semibold text-center bg-indigo-600 text-white py-2 px-3 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          {t('documentCard.addNewVersion')}
-        </button>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default DocumentCard;
