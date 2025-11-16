@@ -4,11 +4,12 @@ import { useTranslation } from '../hooks/useTranslation';
 import { XIcon } from './icons/XIcon';
 import { TrashIcon } from './icons/TrashIcon';
 
-// Add JSZip to the window interface
+// Add JSZip and ImageCapture to the window interface
 declare global {
     interface Window {
         jspdf: any;
         JSZip: any;
+        ImageCapture: any;
     }
 }
 
@@ -27,6 +28,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
     const { t } = useTranslation();
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageCaptureRef = useRef<any>(null);
 
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [capturedImages, setCapturedImages] = useState<string[]>([]);
@@ -57,6 +59,15 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     if (videoRef.current) {
                         videoRef.current.srcObject = mediaStream;
                     }
+                    // Use ImageCapture if available for more reliable captures
+                    if (typeof window.ImageCapture !== 'undefined') {
+                        const track = mediaStream.getVideoTracks()[0];
+                        if (track) {
+                           imageCaptureRef.current = new window.ImageCapture(track);
+                        }
+                    } else {
+                        imageCaptureRef.current = null;
+                    }
                 } catch (err) {
                     console.error("Camera access denied:", err);
                     setError(t('cameraModal.errorNoCamera'));
@@ -73,6 +84,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             setProcessingState('idle');
             setShutterEffect(false);
             setSelectedFolderId(currentFolderId);
+            imageCaptureRef.current = null;
         }
 
         return () => {
@@ -82,41 +94,63 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
         };
     }, [isOpen, t, cleanup, currentFolderId]);
 
-    const handleCapture = useCallback(() => {
-        if (!videoRef.current || !canvasRef.current || !stream?.active) return;
+    const handleCapture = useCallback(async () => {
+        if (!stream?.active) return;
     
-        // 1. Trigger shutter effect for immediate visual feedback
+        // Make shutter effect faster and more subtle
         setShutterEffect(true);
-        setTimeout(() => setShutterEffect(false), 150);
+        setTimeout(() => setShutterEffect(false), 100);
     
-        // 2. Defer the actual capture to the next paint cycle
-        requestAnimationFrame(() => {
-            if (!videoRef.current || !canvasRef.current) return;
+        try {
+            let imageDataUrl: string;
     
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-    
-            // This can happen if the stream hasn't initialized fully
-            if (video.videoWidth === 0 || video.videoHeight === 0) {
-                console.warn("Video has no dimensions yet. Capture aborted.");
-                return;
-            }
-    
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-    
-            const context = canvas.getContext('2d');
-            if (context) {
-                try {
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                    setCapturedImages(prev => [...prev, imageDataUrl]);
-                } catch (e) {
-                    console.error("Error drawing image to canvas:", e);
-                    setError("Failed to capture image. Please try again.");
+            // Use modern ImageCapture API if available for more reliable captures
+            if (imageCaptureRef.current) {
+                const blob = await imageCaptureRef.current.takePhoto();
+                imageDataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } else {
+                // Fallback to drawing video frame to canvas
+                if (!videoRef.current || !canvasRef.current) {
+                    throw new Error("Video or canvas ref not available for capture.");
                 }
+                const video = videoRef.current;
+                const canvas = canvasRef.current;
+                
+                imageDataUrl = await new Promise<string>((resolve, reject) => {
+                    requestAnimationFrame(() => {
+                        try {
+                            if (video.videoWidth === 0 || video.videoHeight === 0) {
+                                return reject(new Error("Video has no dimensions. Capture aborted."));
+                            }
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            const context = canvas.getContext('2d');
+                            if (!context) return reject(new Error("Could not get canvas context."));
+                            
+                            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            resolve(canvas.toDataURL('image/jpeg', 0.9));
+                        } catch (e) {
+                            reject(e);
+                        }
+                    });
+                });
             }
-        });
+    
+            if (imageDataUrl) {
+                setCapturedImages(prev => [...prev, imageDataUrl]);
+            } else {
+                throw new Error("Image capture resulted in empty data.");
+            }
+    
+        } catch (e) {
+            console.error("Capture failed:", e);
+            setError("Failed to capture image. Please try again.");
+        }
     }, [stream]);
     
     const handleDeleteImage = (index: number) => {
@@ -241,49 +275,65 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                 />
 
                 {/* Shutter Effect Overlay */}
-                <div className={`absolute inset-0 bg-white/80 transition-opacity duration-150 z-10 ${shutterEffect ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
+                <div className={`absolute inset-0 bg-white/80 transition-opacity duration-100 z-10 ${shutterEffect ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}></div>
                 
                 {view === 'form' && (
-                    <div className="absolute inset-0 p-6 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
-                        <div className="w-full max-w-sm bg-white p-6 rounded-lg space-y-4">
-                            <h3 className="text-lg font-bold">{t('cameraModal.saveOptionsTitle')}</h3>
-                            <div>
-                                <label htmlFor="scannedDocName" className="block text-sm font-medium text-slate-700 mb-1">{t('cameraModal.docNameLabel')}</label>
-                                <input 
-                                  id="scannedDocName" 
-                                  type="text" 
-                                  value={docName} 
-                                  onChange={e => setDocName(e.target.value)} 
-                                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                                  placeholder={t('cameraModal.docNamePlaceholder')}
-                                  autoFocus
-                                />
+                    <div className="absolute inset-0 p-4 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center">
+                        <div className="w-full max-w-sm bg-white p-6 rounded-lg">
+                            <h3 className="text-lg font-bold mb-4">{t('cameraModal.saveOptionsTitle')}</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label htmlFor="scannedDocName" className="block text-sm font-medium text-slate-700 mb-1">{t('cameraModal.docNameLabel')}</label>
+                                    <input 
+                                      id="scannedDocName" 
+                                      type="text" 
+                                      value={docName} 
+                                      onChange={e => setDocName(e.target.value)} 
+                                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                      placeholder={t('cameraModal.docNamePlaceholder')}
+                                      autoFocus
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="scannedFolderSelect" className="block text-sm font-medium text-slate-700 mb-1">{t('folders.assignTo')}</label>
+                                    <select
+                                        id="scannedFolderSelect"
+                                        value={selectedFolderId || ''}
+                                        onChange={e => setSelectedFolderId(e.target.value || null)}
+                                        className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                                    >
+                                        <option value="">{t('folders.none')}</option>
+                                        {folders.map(folder => (
+                                            <option key={folder.id} value={folder.id}>{folder.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {error && <p className="text-sm text-red-500">{error}</p>}
                             </div>
-                            <div>
-                                <label htmlFor="scannedFolderSelect" className="block text-sm font-medium text-slate-700 mb-1">{t('folders.assignTo')}</label>
-                                <select
-                                    id="scannedFolderSelect"
-                                    value={selectedFolderId || ''}
-                                    onChange={e => setSelectedFolderId(e.target.value || null)}
-                                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+
+                            <div className="space-y-3 pt-6">
+                                <button
+                                    onClick={handleSaveAsPdf}
+                                    disabled={processingState !== 'idle'}
+                                    className="w-full text-left p-4 border border-slate-300 rounded-lg hover:bg-indigo-50 hover:border-indigo-500 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-wait"
                                 >
-                                    <option value="">{t('folders.none')}</option>
-                                    {folders.map(folder => (
-                                        <option key={folder.id} value={folder.id}>{folder.name}</option>
-                                    ))}
-                                </select>
+                                    <div className="font-semibold text-slate-800">{t('cameraModal.saveAsPdf')}</div>
+                                    <div className="text-sm text-slate-500">{t('cameraModal.pdfDescription')}</div>
+                                    {processingState === 'pdf' && <div className="text-sm text-indigo-600 mt-1 animate-pulse">{t('cameraModal.savingPdf')}</div>}
+                                </button>
+                                <button
+                                    onClick={handleSaveAsZip}
+                                    disabled={processingState !== 'idle'}
+                                    className="w-full text-left p-4 border border-slate-300 rounded-lg hover:bg-blue-50 hover:border-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-wait"
+                                >
+                                    <div className="font-semibold text-slate-800">{t('cameraModal.saveAsZip')}</div>
+                                    <div className="text-sm text-slate-500">{t('cameraModal.zipDescription')}</div>
+                                    {processingState === 'zip' && <div className="text-sm text-blue-600 mt-1 animate-pulse">{t('cameraModal.savingZip')}</div>}
+                                </button>
                             </div>
-                            {error && <p className="text-sm text-red-500">{error}</p>}
-                            <div className="flex justify-end items-center space-x-3 pt-2">
+                            <div className="flex justify-end pt-6">
                                 <button onClick={() => setView('capture')} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 hover:bg-slate-100 transition-colors" disabled={processingState !== 'idle'}>
-                                    {t('uploadModal.cancel')}
-                                </button>
-                                <div className="flex-grow" />
-                                <button onClick={handleSaveAsZip} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:bg-blue-400 disabled:cursor-wait" disabled={processingState !== 'idle'}>
-                                    {processingState === 'zip' ? t('cameraModal.savingZip') : t('cameraModal.saveAsZip')}
-                                </button>
-                                <button onClick={handleSaveAsPdf} className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors disabled:bg-indigo-400 disabled:cursor-wait" disabled={processingState !== 'idle'}>
-                                    {processingState === 'pdf' ? t('cameraModal.savingPdf') : t('cameraModal.saveAsPdf')}
+                                    {t('cameraModal.backToCapture')}
                                 </button>
                             </div>
                         </div>
