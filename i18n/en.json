@@ -1,4 +1,5 @@
 
+
 {
   "header": {
     "title": "DocuVault",
@@ -92,5 +93,9 @@
     "createNewFolder": "Create new folder",
     "deleteDocument": "Delete {{docName}}",
     "shareDocument": "Share {{docName}}"
+  },
+  "fileViewer": {
+    "noPreviewTitle": "No Preview Available",
+    "noPreviewDescription": "You can download '{{fileName}}' to view it."
   }
 }

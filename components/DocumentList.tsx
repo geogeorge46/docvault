@@ -1,7 +1,8 @@
 
+
 import React, { useState, useMemo } from 'react';
 import Fuse from 'fuse.js';
-import { Document, Folder } from '../types';
+import { Document, Folder, DocumentVersion } from '../types';
 import DocumentCard from './DocumentCard';
 import FolderCard from './FolderCard';
 import { SearchIcon } from './icons/SearchIcon';
@@ -17,6 +18,7 @@ interface DocumentListProps {
   onAddVersion: (docId: string) => void;
   onViewDetails: (doc: Document) => void;
   onDelete: (docId: string) => void;
+  onOpenFile: (version: DocumentVersion) => void;
 }
 
 type SortOption = 'lastUpdated' | 'name' | 'createdAt';
@@ -29,7 +31,8 @@ const DocumentList: React.FC<DocumentListProps> = ({
   onSelectFolder,
   onAddVersion, 
   onViewDetails, 
-  onDelete 
+  onDelete,
+  onOpenFile
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('lastUpdated');
@@ -163,6 +166,7 @@ const DocumentList: React.FC<DocumentListProps> = ({
                 onAddVersion={onAddVersion}
                 onViewDetails={onViewDetails}
                 onDelete={onDelete}
+                onOpenFile={onOpenFile}
               />
             ))}
           </div>

@@ -1,4 +1,5 @@
 
+
 {
   "header": {
     "title": "ഡോക്യൂവോൾട്ട്",
@@ -92,5 +93,9 @@
     "createNewFolder": "പുതിയ ഫോൾഡർ ഉണ്ടാക്കുക",
     "deleteDocument": "{{docName}} മായ്ക്കുക",
     "shareDocument": "{{docName}} പങ്കിടുക"
+  },
+  "fileViewer": {
+    "noPreviewTitle": "പ്രിവ്യൂ ലഭ്യമല്ല",
+    "noPreviewDescription": "'{{fileName}}' കാണുന്നതിന് നിങ്ങൾക്ക് ഡൗൺലോഡ് ചെയ്യാം."
   }
 }
