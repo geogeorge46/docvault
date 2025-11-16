@@ -60,7 +60,11 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             const startStream = async () => {
                 try {
                     const mediaStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'environment' }
+                        video: { 
+                            facingMode: 'environment',
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
+                        }
                     });
                     setStream(mediaStream);
     
