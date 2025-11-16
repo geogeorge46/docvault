@@ -175,21 +175,28 @@ const App: React.FC = () => {
     const { t } = useTranslation();
 
     useEffect(() => {
-        if (!masterKey || isUnlocked === false) return;
+        if (!masterKey || !isUnlocked) return;
 
         const saveData = async () => {
             const dataToEncrypt = JSON.stringify({ documents, folders });
             const { iv, encryptedData } = await encryptData(dataToEncrypt, masterKey);
-            const salt = storedData!.salt; // Salt doesn't change
-            setStoredData({
-                salt,
-                iv: arrayBufferToBase64(iv.buffer),
-                data: arrayBufferToBase64(encryptedData),
+            
+            // Use functional update to avoid depending on `storedData` in the dependency array
+            setStoredData(currentData => {
+                if (!currentData?.salt) {
+                    console.error("Cannot save data: salt is missing.");
+                    return currentData;
+                }
+                return {
+                    salt: currentData.salt,
+                    iv: arrayBufferToBase64(iv.buffer),
+                    data: arrayBufferToBase64(encryptedData),
+                };
             });
         };
         
         saveData().catch(console.error);
-    }, [documents, folders, masterKey, isUnlocked, setStoredData, storedData]);
+    }, [documents, folders, masterKey, isUnlocked, setStoredData]);
 
 
     const handleUnlock = useCallback(async (password: string): Promise<boolean> => {
