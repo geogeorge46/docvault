@@ -96,8 +96,8 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
   const isPdf = latestVersion && latestVersion.fileType === 'application/pdf';
 
   return (
-    <div className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden transform hover:-translate-y-1">
-      <div className="h-40 bg-slate-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden relative group">
+    <div className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden transform hover:-translate-y-1">
+      <div className="h-40 bg-slate-100 flex items-center justify-center overflow-hidden relative group">
         {isImage ? (
           <img 
             src={latestVersion.fileDataUrl} 
@@ -105,12 +105,12 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
           />
         ) : isPdf ? (
-            <div className="flex flex-col items-center justify-center text-red-500 dark:text-red-400">
+            <div className="flex flex-col items-center justify-center text-red-500">
                 <PdfIcon className="w-16 h-16" />
                 <span className="mt-2 text-xs font-bold uppercase tracking-wider">PDF</span>
             </div>
         ) : (
-          <FileIcon className="w-16 h-16 text-slate-300 dark:text-slate-500" />
+          <FileIcon className="w-16 h-16 text-slate-300" />
         )}
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-opacity duration-300 flex items-center justify-center p-4">
           {isPdf && (
@@ -118,7 +118,7 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
               href={latestVersion.fileDataUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 bg-white/90 dark:bg-slate-900/80 text-slate-800 dark:text-slate-100 font-bold py-2 px-4 rounded-full inline-flex items-center shadow-lg"
+              className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-100 scale-90 bg-white/90 text-slate-800 font-bold py-2 px-4 rounded-full inline-flex items-center shadow-lg"
               onClick={(e) => e.stopPropagation()} // Prevent card click-through
             >
               <EyeIcon className="w-5 h-5 mr-2" />
@@ -130,11 +130,11 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
 
       <div className="p-4 flex-grow">
         <div className="flex items-start justify-between">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 pr-2">{document.name}</h2>
-            <button onClick={handleDeleteClick} className="flex-shrink-0 text-slate-400 hover:text-red-500 dark:hover:text-red-400 text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" aria-label={t('aria.deleteDocument', { docName: document.name })}>{t('documentCard.delete')}</button>
+            <h2 className="text-xl font-bold text-slate-800 pr-2">{document.name}</h2>
+            <button onClick={handleDeleteClick} className="flex-shrink-0 text-slate-400 hover:text-red-500 text-xs font-semibold uppercase tracking-wider px-2 py-1 rounded hover:bg-slate-100 transition-colors" aria-label={t('aria.deleteDocument', { docName: document.name })}>{t('documentCard.delete')}</button>
         </div>
         <div className="mt-3 space-y-1.5 text-sm">
-            <div className="flex items-center text-slate-500 dark:text-slate-400">
+            <div className="flex items-center text-slate-500">
               <FileIcon className="w-4 h-4 mr-2 flex-shrink-0" />
               <span>
                 {document.versions.length > 1
@@ -145,15 +145,15 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
             </div>
             {latestVersion && (
               <>
-                <div className="flex items-start text-slate-600 dark:text-slate-300" title={latestVersion.fileName}>
+                <div className="flex items-start text-slate-600" title={latestVersion.fileName}>
                   <FileIcon className="w-4 h-4 mr-2 flex-shrink-0 mt-0.5" />
                   <span className="truncate">{latestVersion.fileName}</span>
                 </div>
-                <div className="flex items-center text-slate-500 dark:text-slate-400">
+                <div className="flex items-center text-slate-500">
                     <DatabaseIcon className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span>{t('documentCard.fileSize', { size: formattedFileSize })}</span>
                 </div>
-                <div className="flex items-center text-slate-500 dark:text-slate-400">
+                <div className="flex items-center text-slate-500">
                     <ClockIcon className="w-4 h-4 mr-2 flex-shrink-0" />
                     <span>{t('documentCard.lastUpdated', { date: formatDate(latestVersion.uploadedAt) })}</span>
                 </div>
@@ -161,24 +161,24 @@ const DocumentCard: React.FC<DocumentCardProps> = ({ document, onAddVersion, onV
             )}
         </div>
       </div>
-      <div className="bg-slate-50 dark:bg-slate-700/50 p-2 grid grid-cols-3 gap-2">
+      <div className="bg-slate-50 p-2 grid grid-cols-3 gap-2">
         <button 
           onClick={() => onViewDetails(document)}
-          className="text-sm font-semibold text-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 py-2 px-3 rounded-md transition-colors"
+          className="text-sm font-semibold text-center text-indigo-600 hover:bg-indigo-100 py-2 px-3 rounded-md transition-colors"
         >
           {t('documentCard.viewDetails')}
         </button>
         <button
           onClick={handleShareClick}
           aria-label={t('aria.shareDocument', { docName: document.name })}
-          className="text-sm font-semibold text-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 py-2 px-3 rounded-md transition-colors flex items-center justify-center"
+          className="text-sm font-semibold text-center text-indigo-600 hover:bg-indigo-100 py-2 px-3 rounded-md transition-colors flex items-center justify-center"
         >
           <ShareIcon className="w-4 h-4 mr-1.5" />
           {t('documentCard.share')}
         </button>
         <button 
           onClick={() => onAddVersion(document.id)}
-          className="text-sm font-semibold text-center bg-indigo-600 text-white py-2 px-3 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:ring-offset-slate-800"
+          className="text-sm font-semibold text-center bg-indigo-600 text-white py-2 px-3 rounded-md hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
         >
           {t('documentCard.addNewVersion')}
         </button>

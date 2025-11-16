@@ -108,16 +108,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isSetup, onUnlock }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-slate-100 dark:bg-slate-900 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-100 flex items-center justify-center z-50 p-4">
             <div className="w-full max-w-sm">
-                <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 md:p-8 text-center">
-                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 dark:bg-indigo-900/50 mb-4">
-                        <KeyIcon className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                <div className="bg-white rounded-lg shadow-xl p-6 md:p-8 text-center">
+                    <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-indigo-100 mb-4">
+                        <KeyIcon className="h-8 w-8 text-indigo-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100">
+                    <h2 className="text-2xl font-bold text-slate-800">
                         {isSetup ? t('authModal.titleSetup') : t('authModal.titleUnlock')}
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-2 text-sm">
+                    <p className="text-slate-500 mt-2 text-sm">
                         {isSetup ? t('authModal.descriptionSetup') : t('authModal.descriptionUnlock')}
                     </p>
                     <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -131,7 +131,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isSetup, onUnlock }) => {
                                 required
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="w-full px-4 py-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
+                                className="w-full px-4 py-3 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-center"
                                 placeholder={t('authModal.passwordLabel')}
                                 autoFocus
                             />
@@ -140,7 +140,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isSetup, onUnlock }) => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:ring-offset-slate-800 disabled:bg-indigo-400 disabled:cursor-wait"
+                            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 disabled:cursor-wait"
                         >
                             {isLoading ? '...' : (isSetup ? t('authModal.setupButton') : t('authModal.unlockButton'))}
                         </button>
@@ -309,7 +309,7 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 font-sans">
+        <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
             <Header />
             <main className="container mx-auto p-4 md:p-6 lg:p-8">
                 <DocumentList
