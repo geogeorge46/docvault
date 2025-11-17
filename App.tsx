@@ -1,9 +1,7 @@
 
 
-
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Document, DocumentVersion, Folder } from './types';
-import useLocalStorage from './hooks/useLocalStorage';
 import Header from './components/Header';
 import DocumentList from './components/DocumentList';
 import UploadModal from './components/UploadModal';
@@ -79,6 +77,69 @@ const decryptData = async (encryptedData: ArrayBuffer, key: CryptoKey, iv: Uint8
     encryptedData
   );
   return textDecoder.decode(decrypted);
+};
+
+// --- IndexedDB Utilities ---
+const DB_NAME = 'DocuVaultDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'encryptedDataStore';
+const DB_KEY = 'docuvault_data';
+
+let dbPromise: Promise<IDBDatabase> | null = null;
+
+const initDB = (): Promise<IDBDatabase> => {
+    if (dbPromise) {
+        return dbPromise;
+    }
+    dbPromise = new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = () => {
+            console.error("IndexedDB error:", request.error);
+            reject("IndexedDB error");
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onupgradeneeded = (event) => {
+            const db = (event.target as IDBOpenDBRequest).result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+    });
+    return dbPromise;
+};
+
+// FIX: Use <T,> for generic functions in .tsx files to avoid parsing ambiguity with JSX.
+const getDataFromDB = <T,>(key: string): Promise<T | null> => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const db = await initDB();
+            const transaction = db.transaction(STORE_NAME, 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.get(key);
+            request.onsuccess = () => resolve(request.result || null);
+            request.onerror = () => {
+                console.error('Error fetching data from IndexedDB:', request.error);
+                reject(request.error);
+            };
+        } catch (error) { reject(error); }
+    });
+};
+
+// FIX: Use <T,> for generic functions in .tsx files to avoid parsing ambiguity with JSX.
+const setDataInDB = <T,>(key: string, data: T): Promise<void> => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const db = await initDB();
+            const transaction = db.transaction(STORE_NAME, 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const request = store.put(data, key);
+            request.onsuccess = () => resolve();
+            request.onerror = () => {
+                console.error('Error saving data to IndexedDB:', request.error);
+                reject(request.error);
+            };
+        } catch (error) { reject(error); }
+    });
 };
 
 // --- Auth Modal Component ---
@@ -162,7 +223,8 @@ interface EncryptedData {
 }
 
 const App: React.FC = () => {
-    const [storedData, setStoredData] = useLocalStorage<EncryptedData | null>('docuvault_data', null);
+    const [storedData, setStoredData] = useState<EncryptedData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
     
     const [documents, setDocuments] = useState<Document[]>([]);
     const [folders, setFolders] = useState<Folder[]>([]);
@@ -180,28 +242,67 @@ const App: React.FC = () => {
     const { t } = useTranslation();
 
     useEffect(() => {
-        if (!masterKey || !isUnlocked) return;
-
-        const saveData = async () => {
-            const dataToEncrypt = JSON.stringify({ documents, folders });
-            const { iv, encryptedData } = await encryptData(dataToEncrypt, masterKey);
-            
-            // Use functional update to avoid depending on `storedData` in the dependency array
-            setStoredData(currentData => {
-                if (!currentData?.salt) {
-                    console.error("Cannot save data: salt is missing.");
-                    return currentData;
+        const loadInitialData = async () => {
+            setIsLoading(true);
+            try {
+                const lsItem = window.localStorage.getItem('docuvault_data');
+                if (lsItem) {
+                    console.log("Migrating data from localStorage to IndexedDB...");
+                    const lsData = JSON.parse(lsItem);
+                    if(lsData.salt && lsData.iv && lsData.data) {
+                        await setDataInDB(DB_KEY, lsData);
+                        window.localStorage.removeItem('docuvault_data');
+                        setStoredData(lsData);
+                    } else {
+                        window.localStorage.removeItem('docuvault_data');
+                        const dbData = await getDataFromDB<EncryptedData>(DB_KEY);
+                        setStoredData(dbData);
+                    }
+                } else {
+                    const dbData = await getDataFromDB<EncryptedData>(DB_KEY);
+                    setStoredData(dbData);
                 }
-                return {
-                    salt: currentData.salt,
+            } catch (error) {
+                console.error("Failed to load initial data:", error);
+                setStoredData(null);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadInitialData();
+    }, []);
+
+    useEffect(() => {
+        if (isLoading || !masterKey || !isUnlocked) return;
+        
+        const handler = setTimeout(() => {
+            const saveData = async () => {
+                const dataToEncrypt = JSON.stringify({ documents, folders });
+                const { iv, encryptedData } = await encryptData(dataToEncrypt, masterKey);
+                
+                const currentSalt = storedData?.salt;
+                if (!currentSalt) {
+                    console.error("Cannot save data: salt is missing.");
+                    return;
+                }
+                const newData: EncryptedData = {
+                    salt: currentSalt,
                     iv: arrayBufferToBase64(iv.buffer),
                     data: arrayBufferToBase64(encryptedData),
                 };
-            });
-        };
-        
-        saveData().catch(console.error);
-    }, [documents, folders, masterKey, isUnlocked, setStoredData]);
+                
+                try {
+                    await setDataInDB(DB_KEY, newData);
+                    setStoredData(newData);
+                } catch(error) {
+                    console.error("Failed to save data to IndexedDB", error);
+                }
+            };
+            saveData();
+        }, 500);
+
+        return () => clearTimeout(handler);
+    }, [documents, folders, masterKey, isUnlocked, isLoading, storedData?.salt]);
 
 
     const handleUnlock = useCallback(async (password: string): Promise<boolean> => {
@@ -213,16 +314,19 @@ const App: React.FC = () => {
             const dataToEncrypt = JSON.stringify(initialData);
             const { iv, encryptedData } = await encryptData(dataToEncrypt, key);
             
-            setStoredData({
+            const dataToStore = {
                 salt: arrayBufferToBase64(salt.buffer),
                 iv: arrayBufferToBase64(iv.buffer),
                 data: arrayBufferToBase64(encryptedData),
-            });
+            };
+            
+            await setDataInDB(DB_KEY, dataToStore);
             
             setDocuments(initialData.documents);
             setFolders(initialData.folders);
             setMasterKey(key);
             setIsUnlocked(true);
+            setStoredData(dataToStore);
             return true;
         } else { // Unlock mode
             try {
@@ -244,7 +348,7 @@ const App: React.FC = () => {
                 return false;
             }
         }
-    }, [storedData, setStoredData]);
+    }, [storedData]);
 
 
     const handleOpenUploadModalForNew = useCallback(() => {
@@ -313,7 +417,6 @@ const App: React.FC = () => {
         if (!folderToDelete) return;
 
         if (window.confirm(t('folders.deleteConfirmation', { folderName: folderToDelete.name }))) {
-            // Uncategorize all documents within the folder
             setDocuments(prevDocs =>
                 prevDocs.map(doc => {
                     if (doc.folderId === folderId) {
@@ -322,7 +425,6 @@ const App: React.FC = () => {
                     return doc;
                 })
             );
-            // Delete the folder itself
             setFolders(prevFolders => prevFolders.filter(folder => folder.id !== folderId));
         }
     }, [folders, t]);
@@ -335,6 +437,21 @@ const App: React.FC = () => {
         return documents.filter(doc => !doc.folderId);
     }, [documents, currentFolderId]);
     
+    const LoadingSpinner = () => (
+        <div className="flex items-center justify-center h-8 w-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        </div>
+    );
+    
+    if (isLoading) {
+        return (
+            <div className="fixed inset-0 bg-slate-100 flex flex-col items-center justify-center z-50 p-4 space-y-4">
+                <LoadingSpinner />
+                <p className="text-slate-600">Loading your vault...</p>
+            </div>
+        );
+    }
+
     if (!isUnlocked) {
         return <AuthModal isSetup={!storedData} onUnlock={handleUnlock} />;
     }
