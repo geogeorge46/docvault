@@ -917,6 +917,7 @@ const App: React.FC = () => {
     if (!isUnlocked || generatedRecoveryKey) {
         return (
             <AuthModal 
+                key={storedData ? 'unlock' : 'setup'}
                 isSetup={!storedData} 
                 onUnlock={handleUnlock} 
                 onReset={handleResetVault}
