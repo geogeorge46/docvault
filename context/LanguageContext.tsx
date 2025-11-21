@@ -1,7 +1,8 @@
+
 import React, { createContext, ReactNode } from 'react';
 import useLocalStorage from '../hooks/useLocalStorage';
-import enTranslations from '../i18n/en.json';
-import mlTranslations from '../i18n/ml.json';
+import { enTranslations } from '../i18n/en';
+import { mlTranslations } from '../i18n/ml';
 
 interface LanguageContextType {
   language: string;

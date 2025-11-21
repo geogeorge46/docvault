@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DocumentVersion, Folder } from '../types';
 import { useTranslation } from '../hooks/useTranslation';
@@ -145,7 +146,9 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
             if (!context) throw new Error("Could not get canvas context.");
             
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+            
+            // Reduced quality to 0.5 for more aggressive compression (matching utils/compressionUtils default)
+            const imageDataUrl = canvas.toDataURL('image/jpeg', 0.5);
     
             if (imageDataUrl && imageDataUrl.length > 100) { // Simple check for non-empty data
                 setCapturedImages(prev => [...prev, imageDataUrl]);
@@ -202,7 +205,7 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     const x = (a4Width - pdfImgWidth) / 2;
                     const y = (a4Height - pdfImgHeight) / 2;
 
-                    pdf.addImage(imgData, 'JPEG', x, y, pdfImgWidth, pdfImgHeight);
+                    pdf.addImage(imgData, 'JPEG', x, y, pdfImgWidth, pdfImgHeight, undefined, 'FAST');
                 }
                 
                 const pdfDataUrl = pdf.output('datauristring');
@@ -237,7 +240,14 @@ const CameraModal: React.FC<CameraModalProps> = ({ isOpen, onClose, onAddDocumen
                     zip.file(`page_${index + 1}.jpg`, base64Data, { base64: true });
                 });
 
-                const zipBase64 = await zip.generateAsync({ type: 'base64' });
+                // Enable DEFLATE compression
+                const zipBase64 = await zip.generateAsync({ 
+                    type: 'base64',
+                    compression: 'DEFLATE',
+                    compressionOptions: {
+                        level: 6
+                    }
+                });
                 const zipDataUrl = `data:application/zip;base64,${zipBase64}`;
 
                 onAddDocument(docName.trim(), selectedFolderId, {

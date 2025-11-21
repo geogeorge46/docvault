@@ -20,4 +20,5 @@ export interface Folder {
   id: string;
   name: string;
   createdAt: string; // ISO string date
+  parentId?: string | null;
 }
