@@ -3,7 +3,8 @@
 export const enTranslations = {
   "header": {
     "title": "DocuVault",
-    "subtitle": "Your Secure Document Safe"
+    "subtitle": "Your Secure Document Safe",
+    "downloadAll": "Download All (Backup)"
   },
   "language": {
     "toggle": "മലയാളം"
@@ -11,7 +12,9 @@ export const enTranslations = {
   "common": {
     "cancel": "Cancel",
     "processing": "Processing...",
-    "hide": "Hide"
+    "hide": "Hide",
+    "noDocsToDownload": "No documents to download.",
+    "errorDownload": "Failed to generate backup."
   },
   "breadcrumb": {
     "home": "Home"

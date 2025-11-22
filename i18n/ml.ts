@@ -3,7 +3,8 @@
 export const mlTranslations = {
   "header": {
     "title": "ഡോക്യൂവോൾട്ട്",
-    "subtitle": "നിങ്ങളുടെ സുരക്ഷിത പ്രമാണ അറ"
+    "subtitle": "നിങ്ങളുടെ സുരക്ഷിത പ്രമാണ അറ",
+    "downloadAll": "എല്ലാം ഡൗൺലോഡ് ചെയ്യുക"
   },
   "language": {
     "toggle": "English"
@@ -11,7 +12,9 @@ export const mlTranslations = {
   "common": {
     "cancel": "റദ്ദാക്കുക",
     "processing": "പ്രോസസ്സ് ചെയ്യുന്നു...",
-    "hide": "മറയ്ക്കുക"
+    "hide": "മറയ്ക്കുക",
+    "noDocsToDownload": "ഡൗൺലോഡ് ചെയ്യാൻ പ്രമാണങ്ങളൊന്നുമില്ല.",
+    "errorDownload": "ബാക്കപ്പ് പരാജയപ്പെട്ടു."
   },
   "breadcrumb": {
     "home": "ഹോം"

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Document, DocumentVersion, Folder } from './types';
 import Header from './components/Header';
@@ -13,6 +14,13 @@ import { useTranslation } from './hooks/useTranslation';
 import { sampleDocuments } from './sampleData';
 import { CameraIcon } from './components/icons/CameraIcon';
 import CameraModal from './components/CameraModal';
+
+// Add JSZip to window
+declare global {
+    interface Window {
+        JSZip: any;
+    }
+}
 
 // --- Crypto Utilities ---
 const textEncoder = new TextEncoder();
@@ -504,6 +512,7 @@ const App: React.FC = () => {
     const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
     const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
     const [folderToEdit, setFolderToEdit] = useState<Folder | null>(null);
+    const [isZipping, setIsZipping] = useState(false);
     const { t } = useTranslation();
 
     useEffect(() => {
@@ -883,6 +892,93 @@ const App: React.FC = () => {
         });
     }, []);
 
+    const handleDownloadAll = useCallback(async () => {
+        if (documents.length === 0) {
+            alert(t('common.noDocsToDownload'));
+            return;
+        }
+
+        setIsZipping(true);
+        
+        // Small delay to allow UI to update
+        setTimeout(async () => {
+            try {
+                const zip = new window.JSZip();
+                const folderCache = new Map<string, string>();
+
+                // Helper to resolve folder path
+                const getFolderPath = (folderId: string | null | undefined): string => {
+                    if (!folderId) return '';
+                    if (folderCache.has(folderId)) return folderCache.get(folderId)!;
+
+                    const folder = folders.find(f => f.id === folderId);
+                    if (!folder) return '';
+
+                    const parentPath = getFolderPath(folder.parentId);
+                    const sanitizedName = folder.name.replace(/\//g, "-");
+                    const path = parentPath ? `${parentPath}/${sanitizedName}` : sanitizedName;
+                    folderCache.set(folderId, path);
+                    return path;
+                };
+
+                const filenamesInFolders: Record<string, Set<string>> = {};
+
+                documents.forEach(doc => {
+                    const latestVersion = doc.versions[0];
+                    if (!latestVersion) return;
+
+                    const folderPath = getFolderPath(doc.folderId);
+                    const folderKey = folderPath || 'root';
+
+                    if (!filenamesInFolders[folderKey]) {
+                        filenamesInFolders[folderKey] = new Set();
+                    }
+
+                    let fileName = latestVersion.fileName;
+                    
+                    // Ensure unique filename in folder
+                    if (filenamesInFolders[folderKey].has(fileName)) {
+                         let counter = 1;
+                         const namePart = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+                         const extPart = fileName.substring(fileName.lastIndexOf('.'));
+                         while (filenamesInFolders[folderKey].has(fileName)) {
+                            fileName = `${namePart}_${counter}${extPart}`;
+                            counter++;
+                         }
+                    }
+                    filenamesInFolders[folderKey].add(fileName);
+
+                    const fullPath = folderPath ? `${folderPath}/${fileName}` : fileName;
+                    
+                    // Get base64 data
+                    let base64Data = latestVersion.fileDataUrl;
+                    if (base64Data.includes(',')) {
+                        base64Data = base64Data.split(',')[1];
+                    }
+
+                    zip.file(fullPath, base64Data, { base64: true });
+                });
+
+                const content = await zip.generateAsync({ type: 'blob' });
+                const url = window.URL.createObjectURL(content);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `DocuVault_Backup_${new Date().toISOString().split('T')[0]}.zip`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+
+            } catch (error) {
+                console.error("Download failed", error);
+                alert(t('common.errorDownload'));
+            } finally {
+                setIsZipping(false);
+            }
+        }, 100);
+
+    }, [documents, folders, t]);
+
     const currentFolder = useMemo(() => folders.find(f => f.id === currentFolderId), [folders, currentFolderId]);
     
     const documentsInView = useMemo(() => {
@@ -929,7 +1025,11 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-800 font-sans">
-            <Header onSettingsClick={() => setChangePasswordModalOpen(true)} />
+            <Header 
+                onSettingsClick={() => setChangePasswordModalOpen(true)} 
+                onDownloadBackup={handleDownloadAll}
+                isDownloading={isZipping}
+            />
             <main className="container mx-auto p-4 md:p-6 lg:p-8">
                 <DocumentList
                     documents={documents}
